@@ -4,7 +4,7 @@ declare(strict_types=1);
 /**
  * Plugin Name: Trumpet
  * Description: An announcement management plugin.
- * Version: 1.0.16
+ * Version: 1.0.19
  * Author: The Bleeding Deacons
  * License: MIT License
  */
@@ -77,15 +77,15 @@ class TrumpetPlugin
 
             // Register deactivation hook
             register_deactivation_hook(
-                __FILE__,
-                [self::class, 'deactivate']
+                    __FILE__,
+                    [self::class, 'deactivate']
             );
         }
 
         // Initialize services based on context
         if (is_admin()) {
             self::$container->get(TrumpetAdmin::class);
-            new TrumpetSettings(); // Initialize settings            
+            new TrumpetSettings(); // Initialize settings
         }
 
         self::$container->get(AnnouncementChangeTracker::class); // Initialize the tracker
@@ -140,22 +140,22 @@ class TrumpetServiceProvider
         // Register Meeting Repository
         $container->register(MeetingRepositoryInterface::class, function (DependencyContainer $c) {
             return new MeetingRepository(
-                $c->get(MeetingFactoryInterface::class),
-                $c->get(CacheInterface::class)
+                    $c->get(MeetingFactoryInterface::class),
+                    $c->get(CacheInterface::class)
             );
         });
 
         // Register AnnouncementChangeTracker
         $container->register(AnnouncementChangeTracker::class, function (DependencyContainer $c) {
             return new AnnouncementChangeTracker(
-                $c->get(AnnouncementRepositoryInterface::class)
+                    $c->get(AnnouncementRepositoryInterface::class)
             );
         });
 
         // Register FrontPage Manager
         $container->register(FrontPageManager::class, function (DependencyContainer $c) {
             return new FrontPageManager(
-                $c->get(MeetingRepositoryInterface::class)
+                    $c->get(MeetingRepositoryInterface::class)
             );
         });
 
@@ -167,24 +167,24 @@ class TrumpetServiceProvider
         // Register Announcement Manager
         $container->register(AnnouncementManager::class, function (DependencyContainer $c) {
             return new AnnouncementManager(
-                $c->get(AnnouncementRepositoryInterface::class),
-                $c->get(MeetingRepositoryInterface::class)
+                    $c->get(AnnouncementRepositoryInterface::class),
+                    $c->get(MeetingRepositoryInterface::class)
             );
         });
 
         // Register Admin
         $container->register(TrumpetAdmin::class, function (DependencyContainer $c) {
             return new TrumpetAdmin(
-                $c->get(AnnouncementManager::class),
-                $c->get(AnnouncementRepositoryInterface::class)
+                    $c->get(AnnouncementManager::class),
+                    $c->get(AnnouncementRepositoryInterface::class)
             );
         });
 
         // Register Deactivator
         $container->register(AnnouncementDeactivator::class, function (DependencyContainer $c) {
             return new AnnouncementDeactivator(
-                $c->get(AnnouncementRepositoryInterface::class),
-                $c->get(CacheInterface::class)
+                    $c->get(AnnouncementRepositoryInterface::class),
+                    $c->get(CacheInterface::class)
             );
         });
     }
@@ -257,14 +257,14 @@ class Announcement
     {
         // Get title (no HTML needed)
         $this->title = $this->sanitizeField(
-            get_field(TrumpetConfig::TITLE_FIELD, $this->id),
-            'string'
+                get_field(TrumpetConfig::TITLE_FIELD, $this->id),
+                'string'
         ) ?? '';
 
         // Get body content (preserve HTML)
         $this->body = $this->sanitizeField(
-            get_field(TrumpetConfig::BODY_FIELD, $this->id),
-            'html'
+                get_field(TrumpetConfig::BODY_FIELD, $this->id),
+                'html'
         ) ?? '';
 
         // Get related meetings
@@ -275,15 +275,15 @@ class Announcement
 
         // Get and sanitize location
         $this->location = self::sanitizeLocation(
-            get_field(TrumpetConfig::LOCATION_FIELD, $this->id) ?: []
+                get_field(TrumpetConfig::LOCATION_FIELD, $this->id) ?: []
         );
 
         // Get and parse dates
         $this->endDate = self::parseDate(
-            get_field(TrumpetConfig::END_DATE_FIELD, $this->id)
+                get_field(TrumpetConfig::END_DATE_FIELD, $this->id)
         );
         $this->postDate = self::parseDate(
-            get_the_time('d/m/Y', $this->id)
+                get_the_time('d/m/Y', $this->id)
         );
 
         // Get hidden status
@@ -291,7 +291,7 @@ class Announcement
 
         // Get and parse start display date
         $this->startDisplayDate = self::parseDate(
-            get_field(TrumpetConfig::START_DISPLAY_FIELD, $this->id)
+                get_field(TrumpetConfig::START_DISPLAY_FIELD, $this->id)
         );
     }
 
@@ -304,17 +304,17 @@ class Announcement
     private static function sanitizeLocation(array $location): array
     {
         return [
-            'lat' => filter_var(
-                $location['lat'] ?? '',
-                FILTER_SANITIZE_NUMBER_FLOAT,
-                FILTER_FLAG_ALLOW_FRACTION
-            ),
-            'lng' => filter_var(
-                $location['lng'] ?? '',
-                FILTER_SANITIZE_NUMBER_FLOAT,
-                FILTER_FLAG_ALLOW_FRACTION
-            ),
-            'address' => sanitize_text_field($location['address'] ?? ''),
+                'lat' => filter_var(
+                        $location['lat'] ?? '',
+                        FILTER_SANITIZE_NUMBER_FLOAT,
+                        FILTER_FLAG_ALLOW_FRACTION
+                ),
+                'lng' => filter_var(
+                        $location['lng'] ?? '',
+                        FILTER_SANITIZE_NUMBER_FLOAT,
+                        FILTER_FLAG_ALLOW_FRACTION
+                ),
+                'address' => sanitize_text_field($location['address'] ?? ''),
         ];
     }
 
@@ -360,9 +360,9 @@ class Announcement
 
             case 'float':
                 return filter_var(
-                    $value,
-                    FILTER_SANITIZE_NUMBER_FLOAT,
-                    FILTER_FLAG_ALLOW_FRACTION
+                        $value,
+                        FILTER_SANITIZE_NUMBER_FLOAT,
+                        FILTER_FLAG_ALLOW_FRACTION
                 );
 
             default:
@@ -383,63 +383,63 @@ class Announcement
         }
 
         $allowed_html = array(
-            'p' => array(
-                'class' => array(),
-                'style' => array()
-            ),
-            'span' => array(
-                'class' => array(),
-                'style' => array()
-            ),
-            'div' => array(
-                'class' => array(),
-                'style' => array()
-            ),
-            'br' => array(),
-            'em' => array(),
-            'strong' => array(),
-            'a' => array(
-                'href' => array(),
-                'title' => array(),
-                'target' => array(),
-                'rel' => array(),
-                'class' => array()
-            ),
-            'img' => array(
-                'src' => array(),
-                'alt' => array(),
-                'class' => array(),
-                'style' => array(),
-                'width' => array(),
-                'height' => array(),
-                'loading' => array()
-            ),
-            'iframe' => array(
-                'src' => array(),
-                'width' => array(),
-                'height' => array(),
-                'frameborder' => array(),
-                'allowfullscreen' => array(),
-                'allow' => array(),
-                'style' => array(),
-                'class' => array()
-            ),
-            'video' => array(
-                'src' => array(),
-                'controls' => array(),
-                'width' => array(),
-                'height' => array(),
-                'class' => array(),
-                'style' => array(),
-                'poster' => array(),
-                'autoplay' => array(),
-                'muted' => array(),
-                'playsinline' => array()
-            ),
-            'source' => array(
-                'src' => array(),
-                'type' => array()
-            )
+                'p' => array(
+                        'class' => array(),
+                        'style' => array()
+                ),
+                'span' => array(
+                        'class' => array(),
+                        'style' => array()
+                ),
+                'div' => array(
+                        'class' => array(),
+                        'style' => array()
+                ),
+                'br' => array(),
+                'em' => array(),
+                'strong' => array(),
+                'a' => array(
+                        'href' => array(),
+                        'title' => array(),
+                        'target' => array(),
+                        'rel' => array(),
+                        'class' => array()
+                ),
+                'img' => array(
+                        'src' => array(),
+                        'alt' => array(),
+                        'class' => array(),
+                        'style' => array(),
+                        'width' => array(),
+                        'height' => array(),
+                        'loading' => array()
+                ),
+                'iframe' => array(
+                        'src' => array(),
+                        'width' => array(),
+                        'height' => array(),
+                        'frameborder' => array(),
+                        'allowfullscreen' => array(),
+                        'allow' => array(),
+                        'style' => array(),
+                        'class' => array()
+                ),
+                'video' => array(
+                        'src' => array(),
+                        'controls' => array(),
+                        'width' => array(),
+                        'height' => array(),
+                        'class' => array(),
+                        'style' => array(),
+                        'poster' => array(),
+                        'autoplay' => array(),
+                        'muted' => array(),
+                        'playsinline' => array()
+                ),
+                'source' => array(
+                        'src' => array(),
+                        'type' => array()
+                )
         );
 
         return wp_kses($value, $allowed_html);
@@ -459,7 +459,7 @@ class Announcement
 
         // Check for common HTML tags
         return strpos($value, '<') !== false &&
-            (strpos($value, '<img') !== false ||
+               (strpos($value, '<img') !== false ||
                 strpos($value, '<p') !== false ||
                 strpos($value, '<a') !== false);
     }
@@ -484,7 +484,9 @@ class Announcement
             return true;
         }
 
-        return $this->endDate >= new DateTime();
+        // Compare dates only (not times) - announcement expires at end of the end date
+        $today = new DateTime();
+        return $this->endDate->format('Y-m-d') >= $today->format('Y-m-d');
     }
 
     /**
@@ -495,10 +497,10 @@ class Announcement
     public function hasValidLocation(): bool
     {
         return $this->showMap &&
-            isset($this->location['lat']) &&
-            isset($this->location['lng']) &&
-            $this->location['lat'] !== "0" &&
-            $this->location['lng'] !== "0";
+               isset($this->location['lat']) &&
+               isset($this->location['lng']) &&
+               $this->location['lat'] !== "0" &&
+               $this->location['lng'] !== "0";
     }
 
     /**
@@ -533,7 +535,9 @@ class Announcement
             return true; // If no start date set, always ready to display
         }
 
-        return $this->startDisplayDate <= new DateTime();
+        // Compare dates only - announcement is ready to display on the start date
+        $today = new DateTime();
+        return $this->startDisplayDate->format('Y-m-d') <= $today->format('Y-m-d');
     }
 
 
@@ -680,13 +684,13 @@ class Announcement
 
 /**
  * Interface AnnouncementRepositoryInterface
- * 
+ *
  * Defines the contract for announcement repository implementations
  */
 // 6
 /**
  * Interface AnnouncementRepositoryInterface
- * 
+ *
  * Defines the contract for announcement repository implementations
  */
 interface AnnouncementRepositoryInterface
@@ -701,7 +705,7 @@ interface AnnouncementRepositoryInterface
 
     /**
      * Check if an announcement has been changed
-     * 
+     *
      * @param Announcement $original The original announcement
      * @param Announcement $updated The updated announcement
      * @return bool True if the announcement has changed, false otherwise
@@ -711,7 +715,7 @@ interface AnnouncementRepositoryInterface
 
 /**
  * Class AnnouncementRepository
- * 
+ *
  * Handles all database operations for announcements
  */
 // 7
@@ -729,7 +733,7 @@ class AnnouncementRepository implements AnnouncementRepositoryInterface
 
     /**
      * Constructor with improved event handling
-     * 
+     *
      * @param CacheInterface $cache Cache implementation
      * @param int $cacheDuration Cache duration in seconds (defaults to 3600 seconds)
      */
@@ -765,7 +769,7 @@ class AnnouncementRepository implements AnnouncementRepositoryInterface
 
     /**
      * Handle post status transitions for announcements
-     * 
+     *
      * @param string $new_status New post status
      * @param string $old_status Old post status
      * @param WP_Post $post Post object
@@ -806,7 +810,7 @@ class AnnouncementRepository implements AnnouncementRepositoryInterface
 
     /**
      * Clear the announcements cache
-     * 
+     *
      * @param int $post_id The post ID that was updated
      * @return void
      */
@@ -828,14 +832,14 @@ class AnnouncementRepository implements AnnouncementRepositoryInterface
         // Log cache clearing for debugging
         if (defined('WP_DEBUG') && WP_DEBUG) {
             error_log(sprintf(
-                'Announcement cache cleared due to update on post ID: %s',
-                $post_id ?? 'unknown'
+                    'Announcement cache cleared due to update on post ID: %s',
+                    $post_id ?? 'unknown'
             ));
         }
     }
     /**
      * Find all announcements
-     * 
+     *
      * @return Announcement[]
      * @throws AnnouncementException
      */
@@ -848,34 +852,34 @@ class AnnouncementRepository implements AnnouncementRepositoryInterface
             }
 
             $posts = get_posts([
-                'post_type' => TrumpetConfig::ANNOUNCEMENT_POST_TYPE,
-                'posts_per_page' => -1,
-                'orderby' => 'date',
-                'order' => 'DESC',
-                'post_status' => 'publish'
+                    'post_type' => TrumpetConfig::ANNOUNCEMENT_POST_TYPE,
+                    'posts_per_page' => -1,
+                    'orderby' => 'date',
+                    'order' => 'DESC',
+                    'post_status' => 'publish'
             ]);
 
             $announcements = array_map(
-                function ($post) {
-                    return new Announcement($post);
-                },
-                $posts
+                    function ($post) {
+                        return new Announcement($post);
+                    },
+                    $posts
             );
 
             $this->cache->set(TrumpetConfig::ANNOUNCEMENTS_CACHE_KEY, $announcements, '', $this->cacheDuration);
             return $announcements;
         } catch (Exception $e) {
             throw new AnnouncementException(
-                "Error fetching announcements: " . $e->getMessage(),
-                0,
-                $e
+                    "Error fetching announcements: " . $e->getMessage(),
+                    0,
+                    $e
             );
         }
     }
 
     /**
      * Find announcement by ID
-     * 
+     *
      * @param int $id
      * @return Announcement|null
      * @throws AnnouncementException
@@ -891,16 +895,16 @@ class AnnouncementRepository implements AnnouncementRepositoryInterface
             return new Announcement($post);
         } catch (Exception $e) {
             throw new AnnouncementException(
-                "Error fetching announcement: " . $e->getMessage(),
-                0,
-                $e
+                    "Error fetching announcement: " . $e->getMessage(),
+                    0,
+                    $e
             );
         }
     }
 
     /**
      * Find all active announcements
-     * 
+     *
      * @return Announcement[]
      * @throws AnnouncementException
      */
@@ -911,22 +915,24 @@ class AnnouncementRepository implements AnnouncementRepositoryInterface
             $today = new DateTime();
 
             return array_filter($all, function (Announcement $announcement) use ($today) {
+                // Compare dates only (not times) - announcement expires at end of the end date
+                $endDate = $announcement->getEndDate();
                 return !$announcement->isHidden() &&
-                    $announcement->isReadyToDisplay() &&
-                    (!$announcement->getEndDate() || $announcement->getEndDate() >= $today);
+                       $announcement->isReadyToDisplay() &&
+                       (!$endDate || $endDate->format('Y-m-d') >= $today->format('Y-m-d'));
             });
         } catch (Exception $e) {
             throw new AnnouncementException(
-                "Error fetching active announcements: " . $e->getMessage(),
-                0,
-                $e
+                    "Error fetching active announcements: " . $e->getMessage(),
+                    0,
+                    $e
             );
         }
     }
 
     /**
      * Save new announcement
-     * 
+     *
      * @param Announcement $announcement
      * @return bool
      * @throws AnnouncementException
@@ -935,9 +941,9 @@ class AnnouncementRepository implements AnnouncementRepositoryInterface
     {
         try {
             $postData = [
-                'post_type' => TrumpetConfig::ANNOUNCEMENT_POST_TYPE,
-                'post_title' => $announcement->getTitle(),
-                'post_status' => 'publish'
+                    'post_type' => TrumpetConfig::ANNOUNCEMENT_POST_TYPE,
+                    'post_title' => $announcement->getTitle(),
+                    'post_status' => 'publish'
             ];
 
             $postId = wp_insert_post($postData, true);
@@ -951,16 +957,16 @@ class AnnouncementRepository implements AnnouncementRepositoryInterface
             return true;
         } catch (Exception $e) {
             throw new AnnouncementException(
-                "Error saving announcement: " . $e->getMessage(),
-                0,
-                $e
+                    "Error saving announcement: " . $e->getMessage(),
+                    0,
+                    $e
             );
         }
     }
 
     /**
      * Update existing announcement
-     * 
+     *
      * @param Announcement $announcement
      * @return bool
      * @throws AnnouncementException
@@ -979,8 +985,8 @@ class AnnouncementRepository implements AnnouncementRepositoryInterface
             do_action('before_update_announcement', $announcement, $originalAnnouncement);
 
             $postData = [
-                'ID' => $announcement->getId(),
-                'post_title' => $announcement->getTitle(),
+                    'ID' => $announcement->getId(),
+                    'post_title' => $announcement->getTitle(),
             ];
 
             $updated = wp_update_post($postData, true);
@@ -1003,16 +1009,16 @@ class AnnouncementRepository implements AnnouncementRepositoryInterface
             return true;
         } catch (Exception $e) {
             throw new AnnouncementException(
-                "Error updating announcement: " . $e->getMessage(),
-                0,
-                $e
+                    "Error updating announcement: " . $e->getMessage(),
+                    0,
+                    $e
             );
         }
     }
 
     /**
      * Check if an announcement has been changed
-     * 
+     *
      * @param Announcement $original The original announcement
      * @param Announcement $updated The updated announcement
      * @return bool True if the announcement has changed, false otherwise
@@ -1052,8 +1058,8 @@ class AnnouncementRepository implements AnnouncementRepositoryInterface
         }
 
         if (
-            $originalEndDate && $updatedEndDate &&
-            $originalEndDate->format('Y-m-d') !== $updatedEndDate->format('Y-m-d')
+                $originalEndDate && $updatedEndDate &&
+                $originalEndDate->format('Y-m-d') !== $updatedEndDate->format('Y-m-d')
         ) {
             return true;
         }
@@ -1104,8 +1110,8 @@ class AnnouncementRepository implements AnnouncementRepositoryInterface
         }
 
         if (
-            $originalStartDate && $updatedStartDate &&
-            $originalStartDate->format('Y-m-d') !== $updatedStartDate->format('Y-m-d')
+                $originalStartDate && $updatedStartDate &&
+                $originalStartDate->format('Y-m-d') !== $updatedStartDate->format('Y-m-d')
         ) {
             return true;
         }
@@ -1117,7 +1123,7 @@ class AnnouncementRepository implements AnnouncementRepositoryInterface
 
     /**
      * Delete announcement
-     * 
+     *
      * @param int $id
      * @return bool
      * @throws AnnouncementException
@@ -1134,16 +1140,16 @@ class AnnouncementRepository implements AnnouncementRepositoryInterface
             return true;
         } catch (Exception $e) {
             throw new AnnouncementException(
-                "Error deleting announcement: " . $e->getMessage(),
-                0,
-                $e
+                    "Error deleting announcement: " . $e->getMessage(),
+                    0,
+                    $e
             );
         }
     }
 
     /**
      * Update custom fields for an announcement
-     * 
+     *
      * @param int $postId
      * @param Announcement $announcement
      */
@@ -1155,9 +1161,9 @@ class AnnouncementRepository implements AnnouncementRepositoryInterface
 
         if ($announcement->getEndDate()) {
             update_field(
-                TrumpetConfig::END_DATE_FIELD,
-                $announcement->getFormattedEndDate(),
-                $postId
+                    TrumpetConfig::END_DATE_FIELD,
+                    $announcement->getFormattedEndDate(),
+                    $postId
             );
         }
 
@@ -1168,17 +1174,17 @@ class AnnouncementRepository implements AnnouncementRepositoryInterface
 
         if ($announcement->getRelatedMeeting()) {
             update_field(
-                TrumpetConfig::RELATED_MEETING_FIELD,
-                $announcement->getRelatedMeeting(),
-                $postId
+                    TrumpetConfig::RELATED_MEETING_FIELD,
+                    $announcement->getRelatedMeeting(),
+                    $postId
             );
         }
 
         if ($announcement->getStartDisplayDate()) {
             update_field(
-                TrumpetConfig::START_DISPLAY_FIELD,
-                $announcement->getFormattedStartDisplayDate(),
-                $postId
+                    TrumpetConfig::START_DISPLAY_FIELD,
+                    $announcement->getFormattedStartDisplayDate(),
+                    $postId
             );
         }
     }
@@ -1247,7 +1253,7 @@ class FrontPageManager
 
 /**
  * Class AnnouncementChangeTracker
- * 
+ *
  * Tracks changes to announcements via ACF and fires the announcement_changed hook
  * when actual changes are detected.
  */
@@ -1267,7 +1273,7 @@ class AnnouncementChangeTracker
 
     /**
      * Constructor
-     * 
+     *
      * @param AnnouncementRepositoryInterface $repository Repository for accessing announcements
      */
     public function __construct(AnnouncementRepositoryInterface $repository)
@@ -1281,7 +1287,7 @@ class AnnouncementChangeTracker
 
     /**
      * Capture the original announcement before ACF makes changes
-     * 
+     *
      * @param int $post_id The post ID being saved
      * @return void
      */
@@ -1306,7 +1312,7 @@ class AnnouncementChangeTracker
 
     /**
      * Check for changes after ACF has saved all fields
-     * 
+     *
      * @param int $post_id The post ID being saved
      * @return void
      */
@@ -1345,8 +1351,8 @@ class AnnouncementChangeTracker
                 $post = get_post($post_id);
                 if ($post && $post->post_title !== $updatedAnnouncement->getTitle()) {
                     wp_update_post([
-                        'ID' => $post_id,
-                        'post_title' => $updatedAnnouncement->getTitle()
+                            'ID' => $post_id,
+                            'post_title' => $updatedAnnouncement->getTitle()
                     ]);
                 }
 
@@ -1368,7 +1374,7 @@ class AnnouncementChangeTracker
 
 /**
  * Class AnnouncementManager
- * 
+ *
  * Class for managing announcements
  */
 // 8
@@ -1448,31 +1454,31 @@ class AnnouncementManager
 
         // Add iframe support for YouTube, Vimeo, etc.
         $allowed_tags['iframe'] = [
-            'src'             => true,
-            'width'           => true,
-            'height'          => true,
-            'frameborder'     => true,
-            'allowfullscreen' => true,
-            'title'           => true,
-            'allow'           => true,
-            'style'           => true,
-            'class'           => true
+                'src'             => true,
+                'width'           => true,
+                'height'          => true,
+                'frameborder'     => true,
+                'allowfullscreen' => true,
+                'title'           => true,
+                'allow'           => true,
+                'style'           => true,
+                'class'           => true
         ];
 
         // Add video and source tags for self-hosted videos
         $allowed_tags['video'] = [
-            'src'      => true,
-            'controls' => true,
-            'width'    => true,
-            'height'   => true,
-            'class'    => true,
-            'style'    => true,
-            'poster'   => true
+                'src'      => true,
+                'controls' => true,
+                'width'    => true,
+                'height'   => true,
+                'class'    => true,
+                'style'    => true,
+                'poster'   => true
         ];
 
         $allowed_tags['source'] = [
-            'src'  => true,
-            'type' => true
+                'src'  => true,
+                'type' => true
         ];
 
         // Process shortcodes before sanitizing
@@ -1509,13 +1515,13 @@ class AnnouncementManager
     private function renderMap(array $location): string
     {
         return sprintf(
-            '<div class="address">%s</div>
+                '<div class="address">%s</div>
             <div class="acf-map" data-zoom="16">
                 <div class="marker" data-lat="%s" data-lng="%s"></div>
             </div>',
-            esc_html($location['address'] ?? ''),
-            esc_attr($location['lat']),
-            esc_attr($location['lng'])
+                esc_html($location['address'] ?? ''),
+                esc_attr($location['lat']),
+                esc_attr($location['lng'])
         );
     }
 
@@ -1541,12 +1547,12 @@ class AnnouncementManager
             }
 
             $output .= sprintf(
-                '<div class="meeting_link">
+                    '<div class="meeting_link">
 					<a class="link_light" href="%s">%s %s</a>
 				</div>',
-                esc_url($meeting->getUrl()),
-                esc_html($meeting->getName()),
-                $type
+                    esc_url($meeting->getUrl()),
+                    esc_html($meeting->getName()),
+                    $type
             );
         }
 
@@ -1572,7 +1578,7 @@ class AnnouncementManager
      */
     public function addStyles(): void
     {
-?>
+        ?>
         <style>
             /* General announcement container */
             .announcement {
@@ -1704,7 +1710,7 @@ class AnnouncementManager
                 }
             }
         </style>
-    <?php
+        <?php
     }
 
 
@@ -1717,11 +1723,11 @@ class AnnouncementManager
     private function logError(string $context, Exception $e): void
     {
         error_log(sprintf(
-            '[Announcement Plugin] %s: %s in %s:%d',
-            $context,
-            $e->getMessage(),
-            $e->getFile(),
-            $e->getLine()
+                '[Announcement Plugin] %s: %s in %s:%d',
+                $context,
+                $e->getMessage(),
+                $e->getFile(),
+                $e->getLine()
         ));
     }
 
@@ -1742,9 +1748,9 @@ class AnnouncementManager
         if (current_user_can('edit_post', $announcement->getId())) {
             $edit_link = get_edit_post_link($announcement->getId());
             $title_output = sprintf(
-                '<h2>%s <a href="%s" class="announcement-edit-link" title="Edit this announcement"><span class="dashicons dashicons-edit"></span></a></h2>',
-                esc_html($announcement->getTitle()),
-                esc_url($edit_link)
+                    '<h2>%s <a href="%s" class="announcement-edit-link" title="Edit this announcement"><span class="dashicons dashicons-edit"></span></a></h2>',
+                    esc_html($announcement->getTitle()),
+                    esc_url($edit_link)
             );
         }
 
@@ -1755,13 +1761,13 @@ class AnnouncementManager
             $image_data = wp_get_attachment_image_src($thumbnail_id, 'large');
             if ($image_data) {
                 $output .= sprintf(
-                    '<div class="announcement-featured-image">
+                        '<div class="announcement-featured-image">
                     <img src="%s" alt="%s" width="%s" height="%s" loading="lazy">
                 </div>',
-                    esc_url($image_data[0]),
-                    esc_attr($announcement->getTitle()),
-                    esc_attr($image_data[1]),
-                    esc_attr($image_data[2])
+                        esc_url($image_data[0]),
+                        esc_attr($announcement->getTitle()),
+                        esc_attr($image_data[1]),
+                        esc_attr($image_data[2])
                 );
             }
         }
@@ -1784,8 +1790,8 @@ class AnnouncementManager
         $content = apply_filters('the_content', $content);
 
         $output .= sprintf(
-            '<div class="announcement-content">%s</div>',
-            $content
+                '<div class="announcement-content">%s</div>',
+                $content
         );
 
         // Location/Map
@@ -1854,8 +1860,8 @@ class AnnouncementManager
         // Date information
         if ($announcement->getEndDate()) {
             $output .= sprintf(
-                '<div class="announcement-date">Valid until: %s</div>',
-                esc_html($announcement->getFormattedEndDate('F j, Y'))
+                    '<div class="announcement-date">Valid until: %s</div>',
+                    esc_html($announcement->getFormattedEndDate('F j, Y'))
             );
         }
 
@@ -1869,7 +1875,7 @@ class AnnouncementManager
 
 /**
  * Class TrumpetAdmin
- * 
+ *
  *  Class for handling all admin-related functionality for announcements
  */
 //  9
@@ -1903,18 +1909,18 @@ class TrumpetAdmin
     {
         // Admin columns
         add_filter(
-            'manage_' . TrumpetConfig::ANNOUNCEMENT_POST_TYPE . '_posts_columns',
-            [$this, 'addCustomColumns']
+                'manage_' . TrumpetConfig::ANNOUNCEMENT_POST_TYPE . '_posts_columns',
+                [$this, 'addCustomColumns']
         );
         add_action(
-            'manage_' . TrumpetConfig::ANNOUNCEMENT_POST_TYPE . '_posts_custom_column',
-            [$this, 'displayCustomColumnContent'],
-            10,
-            2
+                'manage_' . TrumpetConfig::ANNOUNCEMENT_POST_TYPE . '_posts_custom_column',
+                [$this, 'displayCustomColumnContent'],
+                10,
+                2
         );
         add_filter(
-            'manage_edit-' . TrumpetConfig::ANNOUNCEMENT_POST_TYPE . '_sortable_columns',
-            [$this, 'sortableCustomColumns']
+                'manage_edit-' . TrumpetConfig::ANNOUNCEMENT_POST_TYPE . '_sortable_columns',
+                [$this, 'sortableCustomColumns']
         );
         add_action('pre_get_posts', [$this, 'customSortColumns']);
 
@@ -1948,9 +1954,9 @@ class TrumpetAdmin
     }
     /**
      * Disable Quick Edit on admin table
-     * @param mixed $actions 
-     * @param mixed $post 
-     * @return mixed 
+     * @param mixed $actions
+     * @param mixed $post
+     * @return mixed
      */
     function remove_quick_edit($actions, $post) {
         // Check if this is your custom post type
@@ -1964,7 +1970,7 @@ class TrumpetAdmin
 
     public function addAdminStyles(): void
     {
-    ?>
+        ?>
         <style>
             .status-active {
                 color: #46b450;
@@ -2007,7 +2013,7 @@ class TrumpetAdmin
                 width: 15%;
             }
         </style>
-    <?php
+        <?php
     }
 
     /**
@@ -2076,8 +2082,8 @@ class TrumpetAdmin
             $this->logError("Error displaying column content", $e);
             add_action('admin_notices', function () use ($e) {
                 printf(
-                    '<div class="notice notice-error"><p>%s</p></div>',
-                    esc_html("Error displaying column content: " . $e->getMessage())
+                        '<div class="notice notice-error"><p>%s</p></div>',
+                        esc_html("Error displaying column content: " . $e->getMessage())
                 );
             });
         }
@@ -2148,7 +2154,7 @@ class TrumpetAdmin
             // Check if start date is in the future
             if (!empty($start_date)) {
                 $start_date_obj = DateTime::createFromFormat('d/m/Y', $start_date);
-                if ($start_date_obj && $start_date_obj > $current_date) {
+                if ($start_date_obj && $start_date_obj->format('Y-m-d') > $current_date->format('Y-m-d')) {
                     $status = 'Pending';
                     $sort_value = 'pending';
                 }
@@ -2164,7 +2170,7 @@ class TrumpetAdmin
                     if (!$date_obj) {
                         $status = 'Invalid Date';
                         $sort_value = 'invalid';
-                    } elseif ($date_obj < $current_date) {
+                    } elseif ($date_obj->format('Y-m-d') < $current_date->format('Y-m-d')) {
                         $status = 'Expired';
                         $sort_value = 'expired';
                     } else {
@@ -2250,9 +2256,9 @@ class TrumpetAdmin
     {
         try {
             $announcements = get_posts([
-                'post_type' => TrumpetConfig::ANNOUNCEMENT_POST_TYPE,
-                'posts_per_page' => -1,
-                'post_status' => 'publish'
+                    'post_type' => TrumpetConfig::ANNOUNCEMENT_POST_TYPE,
+                    'posts_per_page' => -1,
+                    'post_status' => 'publish'
             ]);
 
             foreach ($announcements as $announcement) {
@@ -2275,48 +2281,48 @@ class TrumpetAdmin
             $expired = $this->getExpiredAnnouncementsCount();
             if ($expired > 0) {
                 printf(
-                    '<div class="notice notice-warning"><p>%s</p></div>',
-                    sprintf(
-                        esc_html(_n(
-                            'There is %d expired announcement.',
-                            'There are %d expired announcements.',
-                            $expired,
-                            'text-domain'
-                        )),
-                        $expired
-                    )
+                        '<div class="notice notice-warning"><p>%s</p></div>',
+                        sprintf(
+                                esc_html(_n(
+                                        'There is %d expired announcement.',
+                                        'There are %d expired announcements.',
+                                        $expired,
+                                        'text-domain'
+                                )),
+                                $expired
+                        )
                 );
             }
 
             $review = $this->getReviewAnnouncementsCount();
             if ($review > 0) {
                 printf(
-                    '<div class="notice notice-warning" style="border-left-color: #f56e28;"><p>%s</p></div>',
-                    sprintf(
-                        esc_html(_n(
-                            'There is %d announcement awaiting review.',
-                            'There are %d announcements awaiting review.',
-                            $review,
-                            'text-domain'
-                        )),
-                        $review
-                    )
+                        '<div class="notice notice-warning" style="border-left-color: #f56e28;"><p>%s</p></div>',
+                        sprintf(
+                                esc_html(_n(
+                                        'There is %d announcement awaiting review.',
+                                        'There are %d announcements awaiting review.',
+                                        $review,
+                                        'text-domain'
+                                )),
+                                $review
+                        )
                 );
             }
 
             $pending = $this->getPendingAnnouncementsCount();
             if ($pending > 0) {
                 printf(
-                    '<div class="notice notice-info"><p>%s</p></div>',
-                    sprintf(
-                        esc_html(_n(
-                            'There is %d pending announcement.',
-                            'There are %d pending announcements.',
-                            $pending,
-                            'text-domain'
-                        )),
-                        $pending
-                    )
+                        '<div class="notice notice-info"><p>%s</p></div>',
+                        sprintf(
+                                esc_html(_n(
+                                        'There is %d pending announcement.',
+                                        'There are %d pending announcements.',
+                                        $pending,
+                                        'text-domain'
+                                )),
+                                $pending
+                        )
                 );
             }
         }
@@ -2391,9 +2397,9 @@ class TrumpetAdmin
     {
         try {
             $announcements = get_posts([
-                'post_type' => TrumpetConfig::ANNOUNCEMENT_POST_TYPE,
-                'posts_per_page' => -1,
-                'post_status' => 'publish'
+                    'post_type' => TrumpetConfig::ANNOUNCEMENT_POST_TYPE,
+                    'posts_per_page' => -1,
+                    'post_status' => 'publish'
             ]);
 
             foreach ($announcements as $announcement) {
@@ -2407,7 +2413,7 @@ class TrumpetAdmin
 
     /**
      * Update start date sort meta for a specific post
-     * 
+     *
      * @param int $post_id The post ID
      * @param string|null $start_date The start date string in d/m/Y format
      */
@@ -2464,8 +2470,8 @@ class TrumpetAdmin
                 // 2. The start display date is in the future
                 // 3. It's not hidden
                 return !$announcement->isHidden() &&
-                    $announcement->getStartDisplayDate() &&
-                    $announcement->getStartDisplayDate() > $today;
+                       $announcement->getStartDisplayDate() &&
+                       $announcement->getStartDisplayDate() > $today;
             }));
         } catch (Exception $e) {
             $this->logError("Error counting pending announcements", $e);
@@ -2483,10 +2489,10 @@ class TrumpetAdmin
         try {
             // We need to query directly for pending status posts
             $query = new \WP_Query([
-                'post_type' => TrumpetConfig::ANNOUNCEMENT_POST_TYPE,
-                'post_status' => 'pending',
-                'posts_per_page' => -1,
-                'fields' => 'ids' // We only need the count
+                    'post_type' => TrumpetConfig::ANNOUNCEMENT_POST_TYPE,
+                    'post_status' => 'pending',
+                    'posts_per_page' => -1,
+                    'fields' => 'ids' // We only need the count
             ]);
 
             return $query->found_posts;
@@ -2505,16 +2511,16 @@ class TrumpetAdmin
     private function logError(string $context, Exception $e): void
     {
         error_log(sprintf(
-            '[Announcement Plugin] %s: %s in %s:%d',
-            $context,
-            $e->getMessage(),
-            $e->getFile(),
-            $e->getLine()
+                '[Announcement Plugin] %s: %s in %s:%d',
+                $context,
+                $e->getMessage(),
+                $e->getFile(),
+                $e->getLine()
         ));
     }
 }
 
-/** 
+/**
  * Class TrumpetSettings
  * Handles plugin settings
  */
@@ -2534,12 +2540,12 @@ class TrumpetSettings
     public function addSettingsPage(): void
     {
         add_submenu_page(
-            'edit.php?post_type=' . TrumpetConfig::ANNOUNCEMENT_POST_TYPE,
-            'Trumpet Settings',
-            'Settings',
-            'manage_options',
-            TrumpetConfig::SETTINGS_PAGE,
-            [$this, 'renderSettingsPage']
+                'edit.php?post_type=' . TrumpetConfig::ANNOUNCEMENT_POST_TYPE,
+                'Trumpet Settings',
+                'Settings',
+                'manage_options',
+                TrumpetConfig::SETTINGS_PAGE,
+                [$this, 'renderSettingsPage']
         );
     }
 
@@ -2549,29 +2555,29 @@ class TrumpetSettings
     public function initializeSettings(): void
     {
         register_setting(
-            TrumpetConfig::OPTION_GROUP,
-            TrumpetConfig::OPTION_NAME,
-            [
-                'type' => 'array',
-                'default' => [
-                    'delete_data' => false, // Default to NOT delete data
+                TrumpetConfig::OPTION_GROUP,
+                TrumpetConfig::OPTION_NAME,
+                [
+                        'type' => 'array',
+                        'default' => [
+                                'delete_data' => false, // Default to NOT delete data
+                        ]
                 ]
-            ]
         );
 
         add_settings_section(
-            'uninstall_section',
-            'Uninstall Settings',
-            [$this, 'renderUninstallSection'],
-            TrumpetConfig::SETTINGS_PAGE
+                'uninstall_section',
+                'Uninstall Settings',
+                [$this, 'renderUninstallSection'],
+                TrumpetConfig::SETTINGS_PAGE
         );
 
         add_settings_field(
-            'delete_data',
-            'Data Cleanup on Uninstall',
-            [$this, 'renderDeleteDataField'],
-            TrumpetConfig::SETTINGS_PAGE,
-            'uninstall_section'
+                'delete_data',
+                'Data Cleanup on Uninstall',
+                [$this, 'renderDeleteDataField'],
+                TrumpetConfig::SETTINGS_PAGE,
+                'uninstall_section'
         );
     }
 
@@ -2584,12 +2590,12 @@ class TrumpetSettings
     {
         $options = get_option(TrumpetConfig::OPTION_NAME, ['delete_data' => false]);
         $delete_data = isset($options['delete_data']) ? $options['delete_data'] : false;
-    ?>
+        ?>
         <label>
             <input
-                type="checkbox"
-                name="<?php echo TrumpetConfig::OPTION_NAME; ?>[delete_data]"
-                <?php checked($delete_data); ?>>
+                    type="checkbox"
+                    name="<?php echo TrumpetConfig::OPTION_NAME; ?>[delete_data]"
+                    <?php checked($delete_data); ?>>
             Delete all announcement posts when uninstalling the plugin
         </label>
         <p class="description" style="color: #d63638;">
@@ -2599,7 +2605,7 @@ class TrumpetSettings
         <p class="description">
             By default, your announcement posts are preserved when uninstalling the plugin.
         </p>
-    <?php
+        <?php
     }
 
     /**
@@ -2610,7 +2616,7 @@ class TrumpetSettings
         if (!current_user_can('manage_options')) {
             return;
         }
-    ?>
+        ?>
         <div class="wrap">
             <h1><?php echo esc_html(get_admin_page_title()); ?></h1>
             <form action="options.php" method="post">
@@ -2621,7 +2627,7 @@ class TrumpetSettings
                 ?>
             </form>
         </div>
-    <?php
+        <?php
     }
 
     /**
@@ -2639,19 +2645,19 @@ class TrumpetSettings
     {
         $options = get_option(TrumpetConfig::OPTION_NAME);
         $preserve_data = isset($options['preserve_data']) ? $options['preserve_data'] : true;
-    ?>
+        ?>
         <label>
             <input
-                type="checkbox"
-                name="<?php echo TrumpetConfig::OPTION_NAME; ?>[preserve_data]"
-                <?php checked($preserve_data); ?>>
+                    type="checkbox"
+                    name="<?php echo TrumpetConfig::OPTION_NAME; ?>[preserve_data]"
+                    <?php checked($preserve_data); ?>>
             Keep announcement posts and custom post type when uninstalling the plugin
         </label>
         <p class="description">
             If checked, your announcement posts and data will be preserved when the plugin is uninstalled.
             If unchecked, all announcement posts and related data will be permanently deleted.
         </p>
-<?php
+        <?php
     }
 
     /**
@@ -2676,8 +2682,8 @@ class AnnouncementDeactivator
     private CacheInterface $cache;
 
     public function __construct(
-        AnnouncementRepositoryInterface $repository,
-        CacheInterface $cache
+            AnnouncementRepositoryInterface $repository,
+            CacheInterface $cache
     ) {
         $this->repository = $repository;
         $this->cache = $cache;
@@ -2717,8 +2723,8 @@ class AnnouncementDeactivator
     private function removeScheduledTasks(): void
     {
         $hooks = [
-            'announcement_cleanup_task',
-            'announcement_notification_task'
+                'announcement_cleanup_task',
+                'announcement_notification_task'
         ];
 
         foreach ($hooks as $hook) {
@@ -2737,8 +2743,8 @@ class AnnouncementDeactivator
         global $wpdb;
 
         $tables = [
-            $wpdb->prefix . 'announcement_meta',
-            $wpdb->prefix . 'announcement_logs'
+                $wpdb->prefix . 'announcement_meta',
+                $wpdb->prefix . 'announcement_logs'
         ];
 
         foreach ($tables as $table) {
@@ -2755,11 +2761,11 @@ class AnnouncementDeactivator
     {
         global $wpdb;
         return $wpdb->get_var(
-            $wpdb->prepare(
-                "SHOW TABLES LIKE %s",
-                $table
-            )
-        ) === $table;
+                        $wpdb->prepare(
+                                "SHOW TABLES LIKE %s",
+                                $table
+                        )
+                ) === $table;
     }
 
     /**
@@ -2769,10 +2775,10 @@ class AnnouncementDeactivator
     {
         $roles = ['administrator', 'editor'];
         $capabilities = [
-            'manage_announcements',
-            'publish_announcements',
-            'edit_announcements',
-            'delete_announcements'
+                'manage_announcements',
+                'publish_announcements',
+                'edit_announcements',
+                'delete_announcements'
         ];
 
         foreach ($roles as $roleName) {
@@ -2791,9 +2797,9 @@ class AnnouncementDeactivator
     private function cleanupOptions(): void
     {
         $options = [
-            'announcement_version',
-            'announcement_settings',
-            'announcement_last_cleanup'
+                'announcement_version',
+                'announcement_settings',
+                'announcement_last_cleanup'
         ];
 
         foreach ($options as $option) {
@@ -2809,18 +2815,18 @@ class AnnouncementDeactivator
 class AnnouncementException extends Exception
 {
     public function __construct(
-        string $message = "",
-        int $code = 0,
-        ?\Throwable $previous = null
+            string $message = "",
+            int $code = 0,
+            ?\Throwable $previous = null
     ) {
         parent::__construct($message, $code, $previous);
 
         // Log the error
         error_log(sprintf(
-            '[Announcement Error] %s in %s:%d',
-            $message,
-            $this->getFile(),
-            $this->getLine()
+                '[Announcement Error] %s in %s:%d',
+                $message,
+                $this->getFile(),
+                $this->getLine()
         ));
     }
 }
@@ -2849,9 +2855,9 @@ function announcement_plugin_uninstall(): void
         if (!$preserve_data) {
             // Remove all announcement posts
             $posts = get_posts([
-                'post_type' => TrumpetConfig::ANNOUNCEMENT_POST_TYPE,
-                'numberposts' => -1,
-                'post_status' => 'any'
+                    'post_type' => TrumpetConfig::ANNOUNCEMENT_POST_TYPE,
+                    'numberposts' => -1,
+                    'post_status' => 'any'
             ]);
 
             foreach ($posts as $post) {
