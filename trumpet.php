@@ -58,10 +58,10 @@ if (file_exists(TRUMPET_PLUGIN_DIR . 'vendor/autoload.php')) {
 }
 
 // Initialize the plugin
-add_action('plugins_loaded', ['Trumpet\\TrumpetPlugin', 'init']);
+add_action('plugins_loaded', [ 'Trumpet\\Plugin', 'init']);
 
 // Register activation/deactivation hooks
-register_deactivation_hook(__FILE__, ['Trumpet\\TrumpetPlugin', 'deactivate']);
+register_deactivation_hook(__FILE__, [ 'Trumpet\\Plugin', 'deactivate']);
 register_uninstall_hook(__FILE__, 'trumpet_plugin_uninstall');
 
 /**
