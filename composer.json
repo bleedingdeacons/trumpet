@@ -2,8 +2,7 @@
   "name": "bleeding-deacons/trumpet",
   "description": "An announcement management plugin for WordPress",
   "type": "wordpress-plugin",
-  "license": "MIT",
-  "version": "1.0.19",
+  "license": "MIT (Modified)",
   "authors": [
     {
       "name": "The Bleeding Deacons"

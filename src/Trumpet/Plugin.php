@@ -42,6 +42,7 @@ class Plugin
         if (is_admin()) {
             // Register menu early (priority 5) so it exists before ACF adds post type submenus
             add_action('admin_menu', [self::class, 'registerTrumpetMenu'], 5);
+
             self::$container->get(TrumpetAdmin::class);
             new TrumpetSettings();
         }

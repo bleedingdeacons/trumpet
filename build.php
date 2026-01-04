@@ -48,43 +48,18 @@ class PluginBuilder
             'build',
             'dist',
             'node_modules',
+            'vendor',
 
         // ==== TESTING ====
             'tests',
             'test',
             'spec',
-            'vendor/tests',
-            'vendor/*/tests',
-            'vendor/*/Tests',
-            'vendor/*/test',
-            'vendor/*/*/tests',
-            'vendor/*/*/Tests',
             'phpunit.xml',
             'phpunit.xml.dist',
             '.phpunit.result.cache',
             '.phpunit.cache',
             'codeception.yml',
             'behat.yml',
-
-        // ==== VENDOR DEV DEPENDENCIES ====
-            'vendor/bin',
-            'vendor/phpunit',
-            'vendor/phpstan',
-            'vendor/sebastian',
-            'vendor/theseer',
-            'vendor/phar-io',
-            'vendor/myclabs',
-            'vendor/nikic',
-            'vendor/squizlabs',
-            'vendor/wp-coding-standards',
-
-        // ==== VENDOR DOCUMENTATION ====
-            'vendor/*/*.md',
-            'vendor/*/*/*.md',
-            'vendor/*/doc',
-            'vendor/*/docs',
-            'vendor/*/.github',
-            'vendor/*/*/.github',
 
         // ==== SETUP/CONFIG ====
             'setup',
