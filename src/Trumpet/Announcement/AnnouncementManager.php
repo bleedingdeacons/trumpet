@@ -61,7 +61,7 @@ class AnnouncementManager
             $activeAnnouncements = $this->repository->findActive();
 
             $output = '<div class="announcements-container">';
-            $output .= '<h1>Announcements</h1>';
+            $output .= '<h1 id="announcements">Announcements</h1>';
 
             if (empty($activeAnnouncements)) {
                 $output .= '<p>No current announcements.</p>';

@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Trumpet
  * Description: An announcement management plugin.
- * Version: 2.0.1
+ * Version: 2.0.2
  * Author: The Bleeding Deacons
  * License: MIT License
  */
