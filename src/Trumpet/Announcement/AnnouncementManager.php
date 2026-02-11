@@ -6,7 +6,7 @@ namespace Trumpet\Announcement;
 
 use Exception;
 use Trumpet\Exception\AnnouncementException;
-use Trumpet\Meetings\MeetingRepositoryInterface;
+use Unity\Meetings\Interfaces\MeetingRepository;
 
 /**
  * Class AnnouncementManager
@@ -16,15 +16,15 @@ use Trumpet\Meetings\MeetingRepositoryInterface;
 class AnnouncementManager
 {
     private AnnouncementRepositoryInterface $repository;
-    private MeetingRepositoryInterface $meetingRepository;
+    private MeetingRepository $meetingRepository;
 
     /**
      * Constructor
      *
      * @param AnnouncementRepositoryInterface $repository Announcement repository
-     * @param MeetingRepositoryInterface $meetings Meeting repository
+     * @param MeetingRepository $meetings Meeting repository
      */
-    public function __construct(AnnouncementRepositoryInterface $repository, MeetingRepositoryInterface $meetings)
+    public function __construct(AnnouncementRepositoryInterface $repository, MeetingRepository $meetings)
     {
         $this->repository = $repository;
         $this->meetingRepository = $meetings;

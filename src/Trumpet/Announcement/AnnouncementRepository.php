@@ -7,7 +7,7 @@ namespace Trumpet\Announcement;
 use DateTime;
 use Exception;
 use WP_Post;
-use Trumpet\Common\CacheInterface;
+use Unity\Core\Interfaces\Cache;
 use Trumpet\Config\TrumpetConfig;
 use Trumpet\Exception\AnnouncementException;
 
@@ -18,16 +18,16 @@ use Trumpet\Exception\AnnouncementException;
  */
 class AnnouncementRepository implements AnnouncementRepositoryInterface
 {
-    private CacheInterface $cache;
+    private Cache $cache;
     private int $cacheDuration;
 
     /**
      * Constructor
      *
-     * @param CacheInterface $cache Cache implementation
+     * @param Cache $cache Cache implementation
      * @param int $cacheDuration Cache duration in seconds
      */
-    public function __construct(CacheInterface $cache, int $cacheDuration = 3600)
+    public function __construct(Cache $cache, int $cacheDuration = 3600)
     {
         $this->cache = $cache;
         $this->cacheDuration = $cacheDuration;
