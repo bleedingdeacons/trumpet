@@ -17,22 +17,22 @@ class TrumpetSettings
      */
     public function __construct()
     {
-        add_action('admin_menu', [$this, 'addSettingsPage']);
+        add_action('admin_menu', [$this, 'addSettingsPage'], 25);
         add_action('admin_init', [$this, 'initializeSettings']);
     }
 
     /**
-     * Add settings page to admin menu
+     * Add settings page to admin menu under Trumpet parent
      */
     public function addSettingsPage(): void
     {
         add_submenu_page(
-            'edit.php?post_type=' . TrumpetConfig::ANNOUNCEMENT_POST_TYPE,
-            'Trumpet Settings',
-            'Settings',
-            'manage_options',
-            TrumpetConfig::SETTINGS_PAGE,
-            [$this, 'renderSettingsPage']
+                'trumpet',                                    // Parent slug (Trumpet menu)
+                'Trumpet Settings',                           // Page title
+                'Settings',                                   // Menu title
+                'manage_options',                             // Capability
+                TrumpetConfig::SETTINGS_PAGE,                 // Menu slug
+                [$this, 'renderSettingsPage']                // Callback
         );
     }
 
@@ -42,29 +42,29 @@ class TrumpetSettings
     public function initializeSettings(): void
     {
         register_setting(
-            TrumpetConfig::OPTION_GROUP,
-            TrumpetConfig::OPTION_NAME,
-            [
-                'type' => 'array',
-                'default' => [
-                    'preserve_data' => true,
+                TrumpetConfig::OPTION_GROUP,
+                TrumpetConfig::OPTION_NAME,
+                [
+                        'type' => 'array',
+                        'default' => [
+                                'preserve_data' => true,
+                        ]
                 ]
-            ]
         );
 
         add_settings_section(
-            'uninstall_section',
-            'Uninstall Settings',
-            [$this, 'renderUninstallSection'],
-            TrumpetConfig::SETTINGS_PAGE
+                'uninstall_section',
+                'Uninstall Settings',
+                [$this, 'renderUninstallSection'],
+                TrumpetConfig::SETTINGS_PAGE
         );
 
         add_settings_field(
-            'preserve_data',
-            'Data Preservation on Uninstall',
-            [$this, 'renderPreserveDataField'],
-            TrumpetConfig::SETTINGS_PAGE,
-            'uninstall_section'
+                'preserve_data',
+                'Data Preservation on Uninstall',
+                [$this, 'renderPreserveDataField'],
+                TrumpetConfig::SETTINGS_PAGE,
+                'uninstall_section'
         );
     }
 
@@ -124,9 +124,9 @@ class TrumpetSettings
         ?>
         <label>
             <input
-                type="checkbox"
-                name="<?php echo esc_attr(TrumpetConfig::OPTION_NAME); ?>[preserve_data]"
-                <?php checked($preserve_data); ?>>
+                    type="checkbox"
+                    name="<?php echo esc_attr(TrumpetConfig::OPTION_NAME); ?>[preserve_data]"
+                    <?php checked($preserve_data); ?>>
             Keep announcement posts and custom post type when uninstalling the plugin
         </label>
         <p class="description">

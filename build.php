@@ -27,39 +27,153 @@ class PluginBuilder
 
     // Files and directories to exclude in production builds
     private array $productionExcludes = [
-        '.git',
-        '.gitignore',
-        '.gitattributes',
-        '.idea',
-        'build',
-        'tests',
-        'vendor/tests',
-        'setup',
-        'node_modules',
-        '.DS_Store',
-        'composer.json',
-        'composer.lock',
-        'phpunit.xml',
-        'phpunit.xml.dist',
-        '.phpcs.xml',
-        '.phpcs.xml.dist',
-        '*.md',
-        'package.json',
-        'package-lock.json',
-        '.editorconfig',
-        'build.php',
-        'phpstan.neon',
-        'phpstan.neon.dist',
-        'phpstan-baseline.neon'
+        // ==== VERSION CONTROL ====
+            '.git',
+            '.gitignore',
+            '.gitattributes',
+            '.svn',
+            '.hg',
+
+        // ==== IDE/EDITOR FILES ====
+            '.idea',
+            '.vscode',
+            '*.sublime-project',
+            '*.sublime-workspace',
+            '.project',
+            '.settings',
+            '*.swp',
+            '*.swo',
+
+        // ==== BUILD DIRECTORIES ====
+            'build',
+            'dist',
+            'node_modules',
+            'vendor',
+
+        // ==== TESTING ====
+            'tests',
+            'test',
+            'spec',
+            'phpunit.xml',
+            'phpunit.xml.dist',
+            '.phpunit.result.cache',
+            '.phpunit.cache',
+            'codeception.yml',
+            'behat.yml',
+
+        // ==== SETUP/CONFIG ====
+            'setup',
+            'composer.json',
+            'composer.lock',
+            'package.json',
+            'package-lock.json',
+            'yarn.lock',
+            'pnpm-lock.yaml',
+
+        // ==== BUILD TOOL CONFIGS ====
+            'webpack.config.js',
+            'webpack.config.ts',
+            'vite.config.js',
+            'vite.config.ts',
+            'rollup.config.js',
+            'rollup.config.mjs',
+            'gulpfile.js',
+            'Gruntfile.js',
+            'tsconfig.json',
+            'jsconfig.json',
+            'babel.config.js',
+            '.babelrc',
+            'postcss.config.js',
+            'tailwind.config.js',
+
+        // ==== CODE QUALITY TOOLS ====
+            '.phpcs.xml',
+            '.phpcs.xml.dist',
+            'phpcs.xml',
+            'phpcs.xml.dist',
+            '.php-cs-fixer.php',
+            '.php-cs-fixer.dist.php',
+            '.php_cs',
+            '.php_cs.dist',
+            '.php-cs-fixer.cache',
+            'phpstan.neon',
+            'phpstan.neon.dist',
+            'phpstan-baseline.neon',
+            'psalm.xml',
+            'psalm.xml.dist',
+            '.eslintrc',
+            '.eslintrc.js',
+            '.eslintrc.json',
+            '.eslintignore',
+            '.prettierrc',
+            '.prettierrc.js',
+            '.prettierrc.json',
+            '.prettierignore',
+            '.stylelintrc',
+            '.stylelintrc.js',
+            '.stylelintrc.json',
+
+        // ==== SOURCE FILES (if compiled) ====
+            '*.scss',
+            '*.sass',
+            '*.less',
+            '*.ts',
+            '*.tsx',
+            '*.map',
+            'src.js',
+
+        // ==== DOCUMENTATION ====
+            '*.md',
+            'docs',
+            'doc',
+            'documentation',
+            'CHANGELOG',
+            'CHANGELOG.txt',
+            'CONTRIBUTING',
+            'CONTRIBUTING.txt',
+
+        // ==== CI/CD ====
+            '.github',
+            '.gitlab-ci.yml',
+            '.travis.yml',
+            '.circleci',
+            'Jenkinsfile',
+            'bitbucket-pipelines.yml',
+
+        // ==== DOCKER ====
+            'Dockerfile',
+            'docker-compose.yml',
+            'docker-compose.yaml',
+            '.dockerignore',
+
+        // ==== ENVIRONMENT/MISC ====
+            '.env',
+            '.env.example',
+            '.env.local',
+            '.editorconfig',
+            '.DS_Store',
+            'Thumbs.db',
+            '*.log',
+            '*.cache',
+            '.npm',
+            '.yarn',
+
+        // ==== BUILD SCRIPT ====
+            'build.php',
+            'Makefile',
+
+        // ==== CLI TOOL ====
+            'Trumpet-cli',
     ];
 
     // Files and directories to exclude in dev builds
     private array $devExcludes = [
-        '.git',
-        '.idea',
-        'build',
-        'node_modules',
-        '.DS_Store'
+            '.git',
+            '.idea',
+            '.vscode',
+            'build',
+            'node_modules',
+            '.DS_Store',
     ];
 
     public function __construct()
@@ -164,9 +278,12 @@ class PluginBuilder
         $this->createZip($archiveName, $excludes);
 
         // Display file size
-        $size = $this->formatBytes(filesize($archiveName));
         $this->log("Archive created successfully: " . basename($archiveName));
-        $this->log("File size: {$size}");
+        $fileSize = filesize($archiveName);
+        if ($fileSize !== false) {
+            $size = $this->formatBytes($fileSize);
+            $this->log("File size: {$size}");
+        }
         $this->log("Location: {$archiveName}");
     }
 
@@ -177,8 +294,9 @@ class PluginBuilder
     {
         $zip = new ZipArchive();
 
-        if ($zip->open($archivePath, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) {
-            $this->error("Failed to create ZIP archive");
+        $result = $zip->open($archivePath, ZipArchive::CREATE | ZipArchive::OVERWRITE);
+        if ($result !== true) {
+            $this->error("Failed to create ZIP archive (error code: {$result})");
             exit(1);
         }
 
@@ -190,14 +308,25 @@ class PluginBuilder
             if (is_file($file)) {
                 // Normalize path to use forward slashes for ZIP standard compliance
                 $relativePath = str_replace('\\', '/', $relativePath);
-
                 $zipPath = $this->pluginName . '/' . $relativePath;
-                $zip->addFile($file, $zipPath);
+
+                // Read file content and add as string to avoid keeping file handles
+                // open (which causes failures on Windows with many files)
+                $contents = file_get_contents($file);
+                if ($contents === false) {
+                    $this->error("Warning: Could not read file: {$file}");
+                    continue;
+                }
+                $zip->addFromString($zipPath, $contents);
                 $fileCount++;
             }
         }
 
-        $zip->close();
+        if (!$zip->close()) {
+            $this->error("Failed to write ZIP archive to: {$archivePath}");
+            exit(1);
+        }
+
         $this->log("Added {$fileCount} files to archive");
     }
 
@@ -208,8 +337,8 @@ class PluginBuilder
     {
         $files = [];
         $iterator = new RecursiveIteratorIterator(
-            new RecursiveDirectoryIterator($dir, RecursiveDirectoryIterator::SKIP_DOTS),
-            RecursiveIteratorIterator::SELF_FIRST
+                new RecursiveDirectoryIterator($dir, RecursiveDirectoryIterator::SKIP_DOTS),
+                RecursiveIteratorIterator::SELF_FIRST
         );
 
         foreach ($iterator as $file) {
@@ -241,11 +370,11 @@ class PluginBuilder
             // Check for wildcard patterns (e.g., *.md)
             if (strpos($normalizedExclude, '*') !== false) {
                 $pattern = str_replace('*', '.*', preg_quote($normalizedExclude, '/'));
-                // Use case-insensitive matching (i flag) for wildcard patterns
+                // Use case-insensitive matching for wildcard patterns
                 if (preg_match('/^' . $pattern . '$/i', $normalizedPath)) {
                     return true;
                 }
-                // Also check basename for file extensions (case-insensitive)
+                // Also check basename for file extensions
                 if (preg_match('/' . $pattern . '$/i', basename($normalizedPath))) {
                     return true;
                 }
@@ -347,7 +476,7 @@ class PluginBuilder
         echo <<<HELP
 
 Trumpet WordPress Plugin Build Script
-=====================================
+======================================
 Platform: {$platform}
 PHP Version: {$phpVersion}
 
@@ -365,18 +494,26 @@ Examples:
   php build.php                           # Build production archive
   php build.php --type=dev                # Build development archive
   php build.php --clean                   # Clean and build production
-  php build.php --version=2.0             # Build with custom version
-  php build.php --type=dev --version=2.0  # Dev build with custom version
+  php build.php --version=2.2             # Build with custom version
+  php build.php --type=dev --version=2.2  # Dev build with custom version
   php build.php --clean-only              # Only clean build directory
 
 Files Excluded (Production):
-  - Development files (.git, .idea, tests, etc.)
-  - Build configuration (composer.json, package.json, etc.)
-  - Documentation (*.md)
-  - PHPStan configuration files
+  - Version control (.git, .svn, .hg)
+  - IDE files (.idea, .vscode, Sublime, vim swap files)
+  - Build directories (build, dist, node_modules)
+  - Testing (tests, phpunit, codeception, behat)
+  - Vendor dev dependencies (phpunit, phpstan, squizlabs)
+  - Build tool configs (webpack, vite, gulp, grunt, babel)
+  - Code quality tools (phpcs, phpstan, eslint, prettier)
+  - Source files (*.scss, *.ts, *.map)
+  - Documentation (*.md, docs, CHANGELOG, CONTRIBUTING)
+  - CI/CD (.github, .travis.yml, Jenkinsfile)
+  - Docker files
+  - Environment files (.env, .editorconfig)
 
 Files Excluded (Dev):
-  - Only: .git, .idea, build, node_modules, .DS_Store
+  - Only: .git, .idea, .vscode, build, node_modules, .DS_Store
 
 PSR-4 Structure:
   src/

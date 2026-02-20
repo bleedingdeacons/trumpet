@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trumpet Plugin — User Documentation</title>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #FAFAF8;
+            --surface: #FFFFFF;
+            --border: #E8E5E0;
+            --text: #1A1A18;
+            --text-secondary: #6B6860;
+            --accent: #D97706;
+            --accent-bg: #FEF3C7;
+            --accent-dark: #B45309;
+            --info: #1D4ED8;
+            --info-bg: #DBEAFE;
+            --danger: #DC2626;
+            --danger-bg: #FEE2E2;
+            --success: #16A34A;
+            --success-bg: #DCFCE7;
+            --code-bg: #F5F3EF;
+            --nav-width: 280px;
+            --header-height: 64px;
+            --radius: 10px;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.04);
+            --shadow-md: 0 4px 12px rgba(0,0,0,0.06);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        html { scroll-behavior: smooth; scroll-padding-top: calc(var(--header-height) + 24px); }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            font-size: 16px;
+            line-height: 1.7;
+            color: var(--text);
+            background: var(--bg);
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* ── Header ── */
+        .site-header {
+            position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+            height: var(--header-height);
+            background: rgba(250,250,248,0.92);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border);
+            display: flex; align-items: center; padding: 0 24px;
+            gap: 16px;
+        }
+        .site-header .logo {
+            display: flex; align-items: center; gap: 10px;
+            font-weight: 700; font-size: 20px; color: var(--text);
+            text-decoration: none; letter-spacing: -0.3px;
+        }
+        .site-header .logo span { color: var(--accent); }
+        .site-header .version {
+            font-size: 12px; font-weight: 500; color: var(--text-secondary);
+            background: var(--code-bg); padding: 2px 8px; border-radius: 6px;
+        }
+        .hamburger {
+            display: none; background: none; border: none; cursor: pointer;
+            width: 36px; height: 36px; flex-shrink: 0;
+            border-radius: 8px; align-items: center; justify-content: center;
+        }
+        .hamburger:hover { background: var(--code-bg); }
+        .hamburger svg { width: 22px; height: 22px; color: var(--text); }
+
+        /* ── Sidebar Nav ── */
+        .sidebar {
+            position: fixed; top: var(--header-height); left: 0; bottom: 0;
+            width: var(--nav-width); overflow-y: auto;
+            border-right: 1px solid var(--border);
+            background: var(--bg); padding: 24px 0;
+            z-index: 90;
+        }
+        .sidebar::-webkit-scrollbar { width: 4px; }
+        .sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+        .nav-section { padding: 0 20px; margin-bottom: 24px; }
+        .nav-section-title {
+            font-size: 11px; font-weight: 600; text-transform: uppercase;
+            letter-spacing: 1px; color: var(--text-secondary); margin-bottom: 8px;
+            padding-left: 12px;
+        }
+        .nav-link {
+            display: block; padding: 6px 12px; border-radius: 8px;
+            color: var(--text-secondary); text-decoration: none;
+            font-size: 14px; font-weight: 400; transition: all 0.15s;
+            line-height: 1.5;
+        }
+        .nav-link:hover { color: var(--text); background: var(--surface); }
+        .nav-link.active { color: var(--accent-dark); background: var(--accent-bg); font-weight: 500; }
+
+        /* ── Main Content ── */
+        .main {
+            margin-left: var(--nav-width);
+            padding: calc(var(--header-height) + 40px) 48px 80px;
+            max-width: 860px;
+        }
+
+        /* ── Typography ── */
+        h1 {
+            font-size: 36px; font-weight: 700; letter-spacing: -0.8px;
+            line-height: 1.2; margin-bottom: 12px; color: var(--text);
+        }
+        h1 .emoji { font-size: 32px; margin-right: 4px; }
+        .subtitle {
+            font-size: 18px; color: var(--text-secondary); font-weight: 400;
+            margin-bottom: 40px; line-height: 1.6;
+        }
+        h2 {
+            font-size: 24px; font-weight: 700; letter-spacing: -0.4px;
+            margin-top: 56px; margin-bottom: 16px; padding-top: 24px;
+            border-top: 1px solid var(--border); color: var(--text);
+        }
+        h2:first-of-type { border-top: none; margin-top: 0; padding-top: 0; }
+        h3 {
+            font-size: 18px; font-weight: 600; margin-top: 32px; margin-bottom: 10px;
+            color: var(--text);
+        }
+        p { margin-bottom: 16px; }
+        ul, ol { margin-bottom: 16px; padding-left: 24px; }
+        li { margin-bottom: 6px; }
+
+        /* ── Cards / Callouts ── */
+        .card {
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: var(--radius); padding: 24px; margin-bottom: 24px;
+            box-shadow: var(--shadow-sm);
+        }
+        .callout {
+            border-radius: var(--radius); padding: 16px 20px; margin-bottom: 24px;
+            font-size: 15px; display: flex; gap: 12px; align-items: flex-start;
+            line-height: 1.6;
+        }
+        .callout-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+        .callout.info { background: var(--info-bg); border-left: 4px solid var(--info); }
+        .callout.warning { background: var(--accent-bg); border-left: 4px solid var(--accent); }
+        .callout.danger { background: var(--danger-bg); border-left: 4px solid var(--danger); }
+        .callout.success { background: var(--success-bg); border-left: 4px solid var(--success); }
+
+        /* ── Code ── */
+        code {
+            font-family: 'JetBrains Mono', monospace; font-size: 13.5px;
+            background: var(--code-bg); padding: 2px 7px; border-radius: 5px;
+            color: var(--accent-dark);
+        }
+        pre {
+            background: #1E1E1C; color: #D4D0C8; border-radius: var(--radius);
+            padding: 20px 24px; margin-bottom: 24px; overflow-x: auto;
+            font-family: 'JetBrains Mono', monospace; font-size: 13px; line-height: 1.7;
+        }
+        pre code { background: none; padding: 0; color: inherit; }
+
+        /* ── Status table ── */
+        .status-table {
+            width: 100%; border-collapse: collapse; margin-bottom: 24px;
+            font-size: 15px;
+        }
+        .status-table th {
+            text-align: left; padding: 10px 16px; font-weight: 600;
+            border-bottom: 2px solid var(--border); font-size: 13px;
+            text-transform: uppercase; letter-spacing: 0.5px;
+            color: var(--text-secondary);
+        }
+        .status-table td { padding: 10px 16px; border-bottom: 1px solid var(--border); }
+        .status-badge {
+            display: inline-block; padding: 2px 10px; border-radius: 20px;
+            font-size: 13px; font-weight: 600;
+        }
+        .badge-active { background: var(--success-bg); color: var(--success); }
+        .badge-expired { background: var(--danger-bg); color: var(--danger); }
+        .badge-hidden { background: var(--accent-bg); color: var(--accent-dark); }
+        .badge-pending { background: var(--info-bg); color: var(--info); }
+        .badge-review { background: #FFF7ED; color: #EA580C; }
+
+        /* ── Steps ── */
+        .steps { counter-reset: step; list-style: none; padding-left: 0; }
+        .steps li {
+            counter-increment: step; padding-left: 44px; position: relative;
+            margin-bottom: 20px; min-height: 32px;
+        }
+        .steps li::before {
+            content: counter(step);
+            position: absolute; left: 0; top: 0;
+            width: 30px; height: 30px; border-radius: 50%;
+            background: var(--accent); color: #fff;
+            font-weight: 700; font-size: 14px;
+            display: flex; align-items: center; justify-content: center;
+        }
+
+        /* ── Keyboard shortcuts ── */
+        kbd {
+            display: inline-block; padding: 2px 8px; font-size: 12px;
+            font-family: 'JetBrains Mono', monospace;
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: 5px; box-shadow: 0 1px 0 var(--border);
+            color: var(--text-secondary);
+        }
+
+        /* ── Overlay for mobile nav ── */
+        .overlay {
+            display: none; position: fixed; inset: 0;
+            background: rgba(0,0,0,0.3); z-index: 80;
+        }
+
+        /* ── Mobile ── */
+        @media (max-width: 860px) {
+            .sidebar {
+                transform: translateX(-100%);
+                transition: transform 0.25s ease;
+                box-shadow: var(--shadow-md);
+            }
+            .sidebar.open { transform: translateX(0); }
+            .overlay.visible { display: block; }
+            .hamburger { display: flex; }
+            .main { margin-left: 0; padding: calc(var(--header-height) + 24px) 20px 60px; }
+            h1 { font-size: 28px; }
+            h2 { font-size: 20px; }
+            pre { padding: 16px; font-size: 12px; }
+            .status-table { font-size: 14px; }
+            .status-table th, .status-table td { padding: 8px 10px; }
+        }
+
+        /* ── Print ── */
+        @media print {
+            .site-header, .sidebar, .hamburger, .overlay { display: none !important; }
+            .main { margin-left: 0; padding: 20px; max-width: 100%; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- Header -->
+<header class="site-header">
+    <button class="hamburger" onclick="toggleNav()" aria-label="Toggle navigation">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
+    <a href="#" class="logo">
+        <span>🎺</span> Trumpet <span>Docs</span>
+    </a>
+    <span class="version">February 2026</span>
+</header>
+
+<!-- Overlay for mobile -->
+<div class="overlay" onclick="toggleNav()"></div>
+
+<!-- Sidebar -->
+<nav class="sidebar" id="sidebar">
+    <div class="nav-section">
+        <div class="nav-section-title">Getting Started</div>
+        <a href="#overview" class="nav-link active">Overview</a>
+        <a href="#requirements" class="nav-link">Requirements</a>
+        <a href="#installation" class="nav-link">Installation</a>
+    </div>
+    <div class="nav-section">
+        <div class="nav-section-title">Announcements</div>
+        <a href="#creating" class="nav-link">Creating an Announcement</a>
+        <a href="#fields" class="nav-link">Announcement Fields</a>
+        <a href="#statuses" class="nav-link">Status Reference</a>
+        <a href="#managing" class="nav-link">Managing Announcements</a>
+    </div>
+    <div class="nav-section">
+        <div class="nav-section-title">Display</div>
+        <a href="#shortcodes" class="nav-link">Shortcodes</a>
+        <a href="#front-page" class="nav-link">Today's Meetings</a>
+    </div>
+    <div class="nav-section">
+        <div class="nav-section-title">Admin</div>
+        <a href="#admin-list" class="nav-link">Admin List View</a>
+        <a href="#settings" class="nav-link">Settings</a>
+        <a href="#uninstall" class="nav-link">Uninstalling</a>
+    </div>
+    <div class="nav-section">
+        <div class="nav-section-title">Help</div>
+        <a href="#troubleshooting" class="nav-link">Troubleshooting</a>
+        <a href="#faq" class="nav-link">FAQ</a>
+    </div>
+</nav>
+
+<!-- Main Content -->
+<main class="main">
+
+    <!-- Overview -->
+    <section id="overview">
+        <h1><span class="emoji">🎺</span> Trumpet Plugin</h1>
+        <p class="subtitle">
+            An announcement management plugin for WordPress. Create, schedule, and display announcements on your site with support for maps, related meetings, and automatic expiry.
+        </p>
+
+        <div class="card">
+            <h3>What Trumpet Does</h3>
+            <p>Trumpet gives you a dedicated <strong>Announcements</strong> section in your WordPress admin. You can create announcements with rich content, attach a location map, link related meetings, set start and end dates, and display everything on the front end with a simple shortcode.</p>
+            <p style="margin-bottom:0;">It's built for organisations that need a simple, reliable way to keep their community informed — and automatically retire outdated announcements.</p>
+        </div>
+    </section>
+
+    <!-- Requirements -->
+    <section id="requirements">
+        <h2>Requirements</h2>
+        <ul>
+            <li><strong>WordPress</strong> 6.0 or later</li>
+            <li><strong>PHP</strong> 8.0 or later</li>
+            <li><strong>Unity plugin</strong> — must be installed and activated (Trumpet depends on it for dependency injection, caching, and the meetings system)</li>
+            <li><strong>Advanced Custom Fields (ACF)</strong> — used for the announcement editor fields</li>
+        </ul>
+
+        <div class="callout warning">
+            <span class="callout-icon">⚠️</span>
+            <div>If Unity is not active, you'll see an admin notice: <em>"This plugin requires the Unity plugin to be installed and activated."</em> Trumpet will not load until Unity is running.</div>
+        </div>
+    </section>
+
+    <!-- Installation -->
+    <section id="installation">
+        <h2>Installation</h2>
+        <ol class="steps">
+            <li>Make sure the <strong>Unity</strong> plugin is installed and activated.</li>
+            <li>Upload the <code>trumpet</code> folder to your <code>/wp-content/plugins/</code> directory, or install via the WordPress plugin uploader.</li>
+            <li>Go to <strong>Plugins → Installed Plugins</strong> and activate <strong>Trumpet</strong>.</li>
+            <li>You'll see a new <strong>Trumpet</strong> menu item in the admin sidebar (near the top, below Dashboard).</li>
+        </ol>
+    </section>
+
+    <!-- Creating an Announcement -->
+    <section id="creating">
+        <h2>Creating an Announcement</h2>
+        <ol class="steps">
+            <li>In the WordPress admin, click <strong>Trumpet → Add New Announcement</strong>.</li>
+            <li>Fill in the announcement fields (see <a href="#fields">Field Reference</a> below).</li>
+            <li>Click <strong>Publish</strong> to make it live immediately, or <strong>Submit for Review</strong> if you need editorial approval.</li>
+        </ol>
+
+        <div class="callout info">
+            <span class="callout-icon">💡</span>
+            <div>Announcements use a custom post type, so they are managed separately from regular Posts and Pages. You'll find them only under the Trumpet menu.</div>
+        </div>
+    </section>
+
+    <!-- Fields -->
+    <section id="fields">
+        <h2>Announcement Fields</h2>
+        <p>Each announcement has the following fields, managed through the ACF editor:</p>
+
+        <div class="card">
+            <h3>General</h3>
+            <table class="status-table">
+                <thead><tr><th>Field</th><th>Description</th></tr></thead>
+                <tbody>
+                <tr><td><strong>Title</strong></td><td>The headline displayed to visitors. Keep it clear and concise.</td></tr>
+                <tr><td><strong>Body</strong></td><td>Rich-text content area. Supports paragraphs, bold/italic, links, images, embedded videos, and iframes.</td></tr>
+                <tr><td><strong>Featured Image</strong></td><td>Optional hero image displayed above the body content.</td></tr>
+                <tr><td><strong>Hide</strong></td><td>Toggle to hide the announcement from the public site without deleting it. Useful for drafts or temporary takedowns.</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="card">
+            <h3>Scheduling</h3>
+            <table class="status-table">
+                <thead><tr><th>Field</th><th>Description</th></tr></thead>
+                <tbody>
+                <tr><td><strong>Start Display Date</strong></td><td>The date the announcement becomes visible. If set to a future date, the announcement won't appear on the public site until that date. Leave blank to display immediately.</td></tr>
+                <tr><td><strong>End Date</strong></td><td>The date the announcement expires. After this date it will no longer show on the front end and will appear as "Expired" in the admin list. Leave blank for no expiry.</td></tr>
+                </tbody>
+            </table>
+            <p style="margin-top:12px; margin-bottom:0; color: var(--text-secondary); font-size: 14px;">
+                Dates use the format <code>dd/mm/yyyy</code> (e.g. 25/12/2026).
+            </p>
+        </div>
+
+        <div class="card">
+            <h3>Location &amp; Map</h3>
+            <table class="status-table">
+                <thead><tr><th>Field</th><th>Description</th></tr></thead>
+                <tbody>
+                <tr><td><strong>Show Map</strong></td><td>Toggle to display an interactive map on the announcement.</td></tr>
+                <tr><td><strong>Location</strong></td><td>If Show Map is enabled, pick a location using the map picker. Stores latitude, longitude, and address.</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="card">
+            <h3>Related Meetings</h3>
+            <table class="status-table">
+                <thead><tr><th>Field</th><th>Description</th></tr></thead>
+                <tbody>
+                <tr><td><strong>Related Meeting</strong></td><td>Link one or more meetings from the Unity meetings system. These appear as clickable links below the announcement body, marked with an icon for online or in-person.</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <!-- Statuses -->
+    <section id="statuses">
+        <h2>Status Reference</h2>
+        <p>The admin list shows a colour-coded status for each announcement:</p>
+
+        <table class="status-table">
+            <thead><tr><th>Status</th><th>Meaning</th></tr></thead>
+            <tbody>
+            <tr><td><span class="status-badge badge-active">Active</span></td><td>Visible on the public site. The end date is in the future (or not set) and the start date has passed.</td></tr>
+            <tr><td><span class="status-badge badge-pending">Pending</span></td><td>Published but the start display date is in the future — not yet visible to visitors.</td></tr>
+            <tr><td><span class="status-badge badge-review">Review</span></td><td>Submitted for editorial review. Not visible until an editor publishes it.</td></tr>
+            <tr><td><span class="status-badge badge-hidden">Hidden</span></td><td>Manually hidden using the "Hide" toggle. Won't display on the front end.</td></tr>
+            <tr><td><span class="status-badge badge-expired">Expired</span></td><td>The end date has passed. No longer visible on the public site.</td></tr>
+            </tbody>
+        </table>
+
+        <div class="callout info">
+            <span class="callout-icon">💡</span>
+            <div>Admin notices appear at the top of the announcements list when there are expired, pending, or awaiting-review announcements, so you can act on them quickly.</div>
+        </div>
+    </section>
+
+    <!-- Managing -->
+    <section id="managing">
+        <h2>Managing Announcements</h2>
+
+        <h3>Editing</h3>
+        <p>Click any announcement title in the admin list to open the editor. Changes are saved when you click <strong>Update</strong>. Trumpet automatically tracks what changed and clears its cache so visitors see the latest version.</p>
+
+        <h3>Hiding &amp; Unhiding</h3>
+        <p>To temporarily remove an announcement from the public site without deleting it, open the announcement and toggle the <strong>Hide</strong> checkbox. The status will change to "Hidden" and it will no longer appear in the shortcode output.</p>
+
+        <h3>Deleting</h3>
+        <p>From the admin list, hover over an announcement and click <strong>Trash</strong>. This moves it to the WordPress Trash. To permanently delete it, go to Trash and click <strong>Delete Permanently</strong>.</p>
+
+        <h3>Edit Link on the Front End</h3>
+        <p>If you're logged in as an editor or administrator, a small edit icon appears next to each announcement title on the public page. Click it to jump directly to the editor.</p>
+    </section>
+
+    <!-- Shortcodes -->
+    <section id="shortcodes">
+        <h2>Shortcodes</h2>
+
+        <h3>Announcements List</h3>
+        <p>Use this shortcode on any page or post to display all active announcements:</p>
+        <pre><code>[list_announcements]</code></pre>
+        <p>This renders each active announcement with its title, featured image, body content, map (if enabled), related meetings, and the "Valid until" date. Announcements that are hidden, expired, or not yet started are automatically excluded.</p>
+        <p>At the bottom, a footer message directs visitors to email <strong>support@aa-bristol.org</strong> to submit a new announcement.</p>
+
+        <h3>Today's Meetings</h3>
+        <p>Display a list of meetings happening today:</p>
+        <pre><code>[todays_meetings]</code></pre>
+        <p>This pulls from the Unity meetings system and shows each meeting's time, name (linked to its detail page), and whether it's online or at a physical location. If there are no meetings today, a "No meetings scheduled for today" message is shown.</p>
+    </section>
+
+    <!-- Front Page -->
+    <section id="front-page">
+        <h2>Today's Meetings Display</h2>
+        <p>The <code>[todays_meetings]</code> shortcode is designed for your homepage or a welcome page. It automatically determines the current day of the week and filters the Unity meeting list accordingly.</p>
+        <p>Each meeting entry shows:</p>
+        <ul>
+            <li>The meeting <strong>time</strong></li>
+            <li>The meeting <strong>name</strong> (as a link)</li>
+            <li>The <strong>location</strong> — either the physical address, or "Online" for virtual meetings</li>
+        </ul>
+    </section>
+
+    <!-- Admin List -->
+    <section id="admin-list">
+        <h2>Admin List View</h2>
+        <p>Navigate to <strong>Trumpet → All Announcements</strong> to see the full list. The table includes these custom columns:</p>
+        <ul>
+            <li><strong>Status</strong> — colour-coded badge showing the current state (see <a href="#statuses">Status Reference</a>)</li>
+            <li><strong>Start Date</strong> — shows the scheduled start date, or "Started" if the date has already passed</li>
+            <li><strong>End Date</strong> — the expiry date</li>
+        </ul>
+        <p>All three columns are <strong>sortable</strong> — click the column header to sort. This makes it easy to find expired announcements that need updating or pending ones that are coming up.</p>
+
+        <div class="callout info">
+            <span class="callout-icon">💡</span>
+            <div>Quick Edit is intentionally disabled for announcements to prevent accidental changes to the custom fields. Always use the full editor.</div>
+        </div>
+    </section>
+
+    <!-- Settings -->
+    <section id="settings">
+        <h2>Settings</h2>
+        <p>Go to <strong>Trumpet → Settings</strong> to access plugin configuration. Currently the settings page manages uninstall behaviour:</p>
+
+        <div class="card">
+            <h3>Data Preservation on Uninstall</h3>
+            <p>This checkbox (enabled by default) controls whether your announcement posts are kept or deleted when you uninstall the plugin:</p>
+            <ul>
+                <li><strong>Checked (default)</strong> — announcement posts are preserved in the database. You can reinstall later and your data will still be there.</li>
+                <li><strong>Unchecked</strong> — all announcement posts and related data are permanently deleted when the plugin is uninstalled.</li>
+            </ul>
+        </div>
+
+        <div class="callout danger">
+            <span class="callout-icon">🚨</span>
+            <div>If you uncheck "Data Preservation" and then delete the plugin, <strong>all announcement data is permanently removed</strong> and cannot be recovered. Make sure this is what you want before proceeding.</div>
+        </div>
+    </section>
+
+    <!-- Uninstall -->
+    <section id="uninstall">
+        <h2>Uninstalling</h2>
+
+        <h3>Deactivation</h3>
+        <p>When you deactivate Trumpet, the following cleanup occurs automatically:</p>
+        <ul>
+            <li>All plugin caches are cleared</li>
+            <li>Scheduled background tasks are removed</li>
+            <li>Custom database tables (logs, meta) are dropped</li>
+            <li>Custom capabilities are removed from roles</li>
+            <li>Plugin options are cleaned up</li>
+        </ul>
+        <p>Your announcement <strong>posts are not deleted</strong> on deactivation — only on full uninstall (if data preservation is turned off).</p>
+
+        <h3>Full Uninstall (Deletion)</h3>
+        <p>When you delete the plugin from the WordPress plugins page:</p>
+        <ul>
+            <li>If <strong>Preserve Data</strong> is on (default): only plugin options are removed. Your announcement posts stay.</li>
+            <li>If <strong>Preserve Data</strong> is off: all announcement posts are permanently deleted alongside plugin options.</li>
+        </ul>
+    </section>
+
+    <!-- Troubleshooting -->
+    <section id="troubleshooting">
+        <h2>Troubleshooting</h2>
+
+        <div class="card">
+            <h3>"This plugin requires the Unity plugin" notice</h3>
+            <p>Trumpet depends on the Unity plugin. Go to <strong>Plugins → Installed Plugins</strong>, find Unity, and activate it. Once Unity is active, Trumpet will load normally.</p>
+        </div>
+
+        <div class="card">
+            <h3>Announcements aren't showing on the front end</h3>
+            <p>Check these common causes:</p>
+            <ul>
+                <li>The <code>[list_announcements]</code> shortcode is on the page</li>
+                <li>The announcement is published (not in draft or pending review)</li>
+                <li>The <strong>Hide</strong> toggle is off</li>
+                <li>The <strong>Start Display Date</strong> has passed (or is blank)</li>
+                <li>The <strong>End Date</strong> hasn't passed yet</li>
+            </ul>
+        </div>
+
+        <div class="card">
+            <h3>Map not displaying</h3>
+            <p>Ensure <strong>Show Map</strong> is toggled on and a valid location (with latitude and longitude) has been set. If both lat and lng are 0, the map won't render.</p>
+        </div>
+
+        <div class="card">
+            <h3>Changes not appearing for visitors</h3>
+            <p>Trumpet uses a 1-hour cache. It clears automatically whenever you save an announcement, but if you have an additional caching plugin (e.g. WP Super Cache, W3 Total Cache), you may need to purge that cache manually.</p>
+        </div>
+    </section>
+
+    <!-- FAQ -->
+    <section id="faq">
+        <h2>FAQ</h2>
+
+        <div class="card">
+            <h3>Can I schedule an announcement in advance?</h3>
+            <p>Yes. Set the <strong>Start Display Date</strong> to a future date. The announcement will appear as "Pending" in the admin and will become visible on the public site once that date arrives.</p>
+        </div>
+
+        <div class="card">
+            <h3>What happens when an announcement expires?</h3>
+            <p>It is automatically removed from the front-end display. In the admin, it shows an "Expired" status in red. The post itself remains in the database — you can edit the end date to reactivate it or delete it.</p>
+        </div>
+
+        <div class="card">
+            <h3>Who can create announcements?</h3>
+            <p>Any user with the <code>edit_posts</code> capability (typically Contributors and above) can create new announcements. The settings page requires <code>manage_options</code> (Administrators only).</p>
+        </div>
+
+        <div class="card">
+            <h3>Can I use Trumpet without the meetings features?</h3>
+            <p>Yes. Simply don't link any related meetings and don't use the <code>[todays_meetings]</code> shortcode. Announcements work independently — meetings are an optional enhancement.</p>
+        </div>
+
+        <div class="card" style="margin-bottom: 0;">
+            <h3>How do I submit a new announcement without admin access?</h3>
+            <p style="margin-bottom: 0;">Email <strong>support@aa-bristol.org</strong>. This is shown to visitors in the footer of the announcements list.</p>
+        </div>
+    </section>
+
+</main>
+
+<script>
+    // Mobile nav toggle
+    function toggleNav() {
+        document.getElementById('sidebar').classList.toggle('open');
+        document.querySelector('.overlay').classList.toggle('visible');
+    }
+
+    // Active nav link on scroll
+    const sections = document.querySelectorAll('section[id]');
+    const navLinks = document.querySelectorAll('.nav-link');
+
+    function updateActiveLink() {
+        let current = '';
+        const scrollY = window.scrollY + 100;
+
+        sections.forEach(section => {
+            if (section.offsetTop <= scrollY) {
+                current = section.getAttribute('id');
+            }
+        });
+
+        navLinks.forEach(link => {
+            link.classList.remove('active');
+            if (link.getAttribute('href') === '#' + current) {
+                link.classList.add('active');
+            }
+        });
+    }
+
+    window.addEventListener('scroll', updateActiveLink, { passive: true });
+
+    // Close mobile nav on link click
+    navLinks.forEach(link => {
+        link.addEventListener('click', () => {
+            if (window.innerWidth <= 860) {
+                toggleNav();
+            }
+        });
+    });
+</script>
+</body>
+</html>

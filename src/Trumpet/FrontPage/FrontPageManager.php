@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Trumpet\FrontPage;
 
 use Exception;
-use Trumpet\Meetings\MeetingRepositoryInterface;
+use Unity\Meetings\Interfaces\MeetingRepository;
 
 /**
  * Class FrontPageManager
@@ -14,15 +14,15 @@ use Trumpet\Meetings\MeetingRepositoryInterface;
  */
 class FrontPageManager
 {
-    private MeetingRepositoryInterface $repository;
+    private MeetingRepository $repository;
 
     /**
      * Constructor.
      * Registers the shortcode.
      *
-     * @param MeetingRepositoryInterface $repository Meeting repository
+     * @param MeetingRepository $repository Meeting repository
      */
-    public function __construct(MeetingRepositoryInterface $repository)
+    public function __construct(MeetingRepository $repository)
     {
         $this->repository = $repository;
         add_shortcode('todays_meetings', [$this, 'render']);
