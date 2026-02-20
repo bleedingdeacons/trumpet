@@ -187,6 +187,29 @@ class Plugin
             'post-new.php?post_type=announcement'         // Menu slug (links to new post)
         );
 
+        // Add Help submenu (opens in new tab)
+        add_submenu_page(
+            'trumpet',                                    // Parent slug
+            'Help',                                       // Page title
+            'Help',                                       // Menu title
+            'read',                                       // Capability
+            'trumpet-help',                               // Menu slug
+            [self::class, 'renderHelpPage']               // Callback function
+        );
+
+        // Make the Help link open in a new tab and redirect to the HTML file
+        add_action('admin_head', function() use ($submenu) {
+            $plugin_url = plugin_dir_url(TRUMPET_PLUGIN_FILE);
+            ?>
+            <script type="text/javascript">
+                jQuery(document).ready(function($) {
+                    // Find the Help menu item and modify it
+                    $('#adminmenu a[href*="trumpet-help"]').attr('href', '<?php echo esc_js($plugin_url); ?>assets/docs/trumpet.html').attr('target', '_blank');
+                });
+            </script>
+            <?php
+        });
+
         // Remove the auto-created "Trumpet" submenu that duplicates the parent
         add_action('admin_menu', function () {
             global $submenu;
@@ -207,6 +230,26 @@ class Plugin
     public static function renderMenuPage(): void
     {
         // Empty callback - submenus will handle content
+    }
+
+    /**
+     * Render the Help page - redirects to HTML file in new tab
+     */
+    public static function renderHelpPage(): void
+    {
+        $helpUrl = plugin_dir_url(TRUMPET_PLUGIN_FILE) . 'assets/docs/trumpet.html';
+
+        // Redirect to the HTML file
+        echo '<script type="text/javascript">';
+        echo 'window.open("' . esc_js($helpUrl) . '", "_blank");';
+        echo 'window.history.back();';
+        echo '</script>';
+
+        echo '<div class="wrap">';
+        echo '<h1>Trumpet Help</h1>';
+        echo '<p>Opening help documentation in a new tab...</p>';
+        echo '<p>If the help page did not open, <a href="' . esc_url($helpUrl) . '" target="_blank">click here</a>.</p>';
+        echo '</div>';
     }
 
     /**
