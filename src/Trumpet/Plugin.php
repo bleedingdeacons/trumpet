@@ -13,7 +13,8 @@ use Trumpet\Announcement\AnnouncementRepository;
 use Trumpet\Announcement\AnnouncementRepositoryInterface;
 use Trumpet\Config\TrumpetConfig;
 use Trumpet\FrontPage\FrontPageManager;
-use Unity\Core\DependencyContainer;
+use Psr\Container\ContainerInterface;
+use Unity\Core\Interfaces\Container;
 use Unity\Core\Interfaces\Cache;
 use Unity\Meetings\Interfaces\MeetingRepository;
 
@@ -29,15 +30,15 @@ use function is_admin;
  */
 class Plugin
 {
-    private static ?DependencyContainer $container = null;
+    private static ?ContainerInterface $container = null;
     private static bool $initialized = false;
 
     /**
      * Initialize the plugin
      *
-     * @param DependencyContainer $unityContainer The Unity dependency container
+     * @param Container $unityContainer The Unity dependency container
      */
-    public static function init(DependencyContainer $unityContainer): void
+    public static function init(Container $unityContainer): void
     {
         if (self::$initialized) {
             return;
@@ -255,32 +256,32 @@ class Plugin
     /**
      * Register all Trumpet services in Unity's container
      *
-     * @param DependencyContainer $container The Unity dependency container
+     * @param Container $container The Unity dependency container
      * @return void
      */
-    private static function registerServices(DependencyContainer $container): void
+    private static function registerServices(Container $container): void
     {
         // Register Announcement Repository
-        $container->register(AnnouncementRepositoryInterface::class, function (DependencyContainer $c) {
+        $container->register(AnnouncementRepositoryInterface::class, function (ContainerInterface $c) {
             return new AnnouncementRepository($c->get(Cache::class));
         });
 
         // Register AnnouncementChangeTracker
-        $container->register(AnnouncementChangeTracker::class, function (DependencyContainer $c) {
+        $container->register(AnnouncementChangeTracker::class, function (ContainerInterface $c) {
             return new AnnouncementChangeTracker(
                 $c->get(AnnouncementRepositoryInterface::class)
             );
         });
 
         // Register FrontPage Manager
-        $container->register(FrontPageManager::class, function (DependencyContainer $c) {
+        $container->register(FrontPageManager::class, function (ContainerInterface $c) {
             return new FrontPageManager(
                 $c->get(MeetingRepository::class)
             );
         });
 
         // Register Announcement Manager
-        $container->register(AnnouncementManager::class, function (DependencyContainer $c) {
+        $container->register(AnnouncementManager::class, function (ContainerInterface $c) {
             return new AnnouncementManager(
                 $c->get(AnnouncementRepositoryInterface::class),
                 $c->get(MeetingRepository::class)
@@ -288,7 +289,7 @@ class Plugin
         });
 
         // Register Trumpet Admin
-        $container->register(TrumpetAdmin::class, function (DependencyContainer $c) {
+        $container->register(TrumpetAdmin::class, function (ContainerInterface $c) {
             return new TrumpetAdmin(
                 $c->get(AnnouncementManager::class),
                 $c->get(AnnouncementRepositoryInterface::class)
@@ -296,7 +297,7 @@ class Plugin
         });
 
         // Register Trumpet Settings
-        $container->register(TrumpetSettings::class, function (DependencyContainer $c) {
+        $container->register(TrumpetSettings::class, function (ContainerInterface $c) {
             return new TrumpetSettings();
         });
     }
@@ -304,10 +305,10 @@ class Plugin
     /**
      * Get the dependency container
      *
-     * @return DependencyContainer
+     * @return ContainerInterface
      * @throws RuntimeException If plugin is not initialized
      */
-    public static function getContainer(): DependencyContainer
+    public static function getContainer(): ContainerInterface
     {
         if (self::$container === null) {
             throw new RuntimeException('Trumpet Plugin not initialized');
