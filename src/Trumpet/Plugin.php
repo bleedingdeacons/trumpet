@@ -51,8 +51,8 @@ class Plugin
 
         // Register deactivation hook
         register_deactivation_hook(
-            TRUMPET_PLUGIN_FILE,
-            [self::class, 'deactivate']
+                TRUMPET_PLUGIN_FILE,
+                [self::class, 'deactivate']
         );
 
         self::$initialized = true;
@@ -93,8 +93,8 @@ class Plugin
 
             // Remove scheduled tasks
             $hooks = [
-                'announcement_cleanup_task',
-                'announcement_notification_task'
+                    'announcement_cleanup_task',
+                    'announcement_notification_task'
             ];
 
             foreach ($hooks as $hook) {
@@ -108,25 +108,26 @@ class Plugin
             global $wpdb;
 
             $tables = [
-                $wpdb->prefix . 'announcement_meta',
-                $wpdb->prefix . 'announcement_logs'
+                    $wpdb->prefix . 'announcement_meta',
+                    $wpdb->prefix . 'announcement_logs'
             ];
 
             foreach ($tables as $table) {
                 if ($wpdb->get_var(
-                        $wpdb->prepare("SHOW TABLES LIKE %s", $table)
-                    ) === $table) {
-                    $wpdb->query("DROP TABLE IF EXISTS $table");
+                                $wpdb->prepare("SHOW TABLES LIKE %s", $table)
+                        ) === $table) {
+                    // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table names cannot be parameterised with prepare(); esc_sql used as defence-in-depth
+                    $wpdb->query("DROP TABLE IF EXISTS `" . esc_sql($table) . "`");
                 }
             }
 
             // Remove custom capabilities
             $roles = ['administrator', 'editor'];
             $capabilities = [
-                'manage_announcements',
-                'publish_announcements',
-                'edit_announcements',
-                'delete_announcements'
+                    'manage_announcements',
+                    'publish_announcements',
+                    'edit_announcements',
+                    'delete_announcements'
             ];
 
             foreach ($roles as $roleName) {
@@ -140,9 +141,9 @@ class Plugin
 
             // Cleanup plugin options
             $options = [
-                'announcement_version',
-                'announcement_settings',
-                'announcement_last_cleanup'
+                    'announcement_version',
+                    'announcement_settings',
+                    'announcement_last_cleanup'
             ];
 
             foreach ($options as $option) {
@@ -161,41 +162,41 @@ class Plugin
     public static function registerTrumpetMenu(): void
     {
         add_menu_page(
-            'Trumpet Announcements',                      // Page title
-            'Trumpet',                                    // Menu title
-            'read',                                       // Capability
-            'trumpet',                                    // Menu slug
-            '__return_null',                              // No callback needed
-            'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGhlaWdodD0iMjRweCIgdmlld0JveD0iMCAtOTYwIDk2MCA5NjAiIHdpZHRoPSIyNHB4IiBmaWxsPSIjMWYxZjFmIj48cGF0aCBkPSJNNzIwLTQ0MHYtODBoMTYwdjgwSDcyMFptNDggMjgwLTEyOC05NiA0OC02NCAxMjggOTYtNDggNjRabS04MC00ODAtNDgtNjQgMTI4LTk2IDQ4IDY0LTEyOCA5NlpNMjAwLTIwMHYtMTYwaC00MHEtMzMgMC01Ni41LTIzLjVUODAtNDQwdi04MHEwLTMzIDIzLjUtNTYuNVQxNjAtNjAwaDE2MGwyMDAtMTIwdjQ4MEwzMjAtMzYwaC00MHYxNjBoLTgwWm0yNDAtMTgydi0xOTZsLTk4IDU4SDE2MHY4MGgxODJsOTggNThabTEyMCAzNnYtMjY4cTI3IDI0IDQzLjUgNTguNVQ2MjAtNDgwcTAgNDEtMTYuNSA3NS41VDU2MC0zNDZaTTMwMC00ODBaIi8+PC9zdmc+',
-            2                                             // Position (below Dashboard)
+                'Trumpet Announcements',                      // Page title
+                'Trumpet',                                    // Menu title
+                'read',                                       // Capability
+                'trumpet',                                    // Menu slug
+                '__return_null',                              // No callback needed
+                'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGhlaWdodD0iMjRweCIgdmlld0JveD0iMCAtOTYwIDk2MCA5NjAiIHdpZHRoPSIyNHB4IiBmaWxsPSIjMWYxZjFmIj48cGF0aCBkPSJNNzIwLTQ0MHYtODBoMTYwdjgwSDcyMFptNDggMjgwLTEyOC05NiA0OC02NCAxMjggOTYtNDggNjRabS04MC00ODAtNDgtNjQgMTI4LTk2IDQ4IDY0LTEyOCA5NlpNMjAwLTIwMHYtMTYwaC00MHEtMzMgMC01Ni41LTIzLjVUODAtNDQwdi04MHEwLTMzIDIzLjUtNTYuNVQxNjAtNjAwaDE2MGwyMDAtMTIwdjQ4MEwzMjAtMzYwaC00MHYxNjBoLTgwWm0yNDAtMTgydi0xOTZsLTk4IDU4SDE2MHY4MGgxODJsOTggNThabTEyMCAzNnYtMjY4cTI3IDI0IDQzLjUgNTguNVQ2MjAtNDgwcTAgNDEtMTYuNSA3NS41VDU2MC0zNDZaTTMwMC00ODBaIi8+PC9zdmc+',
+                2                                             // Position (below Dashboard)
         );
 
         // Add All Announcements submenu
         add_submenu_page(
-            'trumpet',                                    // Parent slug
-            'All Announcements',                          // Page title
-            'All Announcements',                          // Menu title
-            'read',                                       // Capability
-            'edit.php?post_type=announcement'             // Menu slug (links to post type)
+                'trumpet',                                    // Parent slug
+                'All Announcements',                          // Page title
+                'All Announcements',                          // Menu title
+                'read',                                       // Capability
+                'edit.php?post_type=announcement'             // Menu slug (links to post type)
         );
 
         // Add New Announcement submenu
         add_submenu_page(
-            'trumpet',                                    // Parent slug
-            'Add New Announcement',                       // Page title
-            'Add New Announcement',                       // Menu title
-            'edit_posts',                                 // Capability
-            'post-new.php?post_type=announcement'         // Menu slug (links to new post)
+                'trumpet',                                    // Parent slug
+                'Add New Announcement',                       // Page title
+                'Add New Announcement',                       // Menu title
+                'edit_posts',                                 // Capability
+                'post-new.php?post_type=announcement'         // Menu slug (links to new post)
         );
 
         // Add Help submenu (opens in new tab)
         add_submenu_page(
-            'trumpet',                                    // Parent slug
-            'Help',                                       // Page title
-            'Help',                                       // Menu title
-            'read',                                       // Capability
-            'trumpet-help',                               // Menu slug
-            [self::class, 'renderHelpPage']               // Callback function
+                'trumpet',                                    // Parent slug
+                'Help',                                       // Page title
+                'Help',                                       // Menu title
+                'read',                                       // Capability
+                'trumpet-help',                               // Menu slug
+                [self::class, 'renderHelpPage']               // Callback function
         );
 
         // Make the Help link open in a new tab and redirect to the HTML file
@@ -269,30 +270,30 @@ class Plugin
         // Register AnnouncementChangeTracker
         $container->register(AnnouncementChangeTracker::class, function (ContainerInterface $c) {
             return new AnnouncementChangeTracker(
-                $c->get(AnnouncementRepositoryInterface::class)
+                    $c->get(AnnouncementRepositoryInterface::class)
             );
         });
 
         // Register FrontPage Manager
         $container->register(FrontPageManager::class, function (ContainerInterface $c) {
             return new FrontPageManager(
-                $c->get(MeetingRepository::class)
+                    $c->get(MeetingRepository::class)
             );
         });
 
         // Register Announcement Manager
         $container->register(AnnouncementManager::class, function (ContainerInterface $c) {
             return new AnnouncementManager(
-                $c->get(AnnouncementRepositoryInterface::class),
-                $c->get(MeetingRepository::class)
+                    $c->get(AnnouncementRepositoryInterface::class),
+                    $c->get(MeetingRepository::class)
             );
         });
 
         // Register Trumpet Admin
         $container->register(TrumpetAdmin::class, function (ContainerInterface $c) {
             return new TrumpetAdmin(
-                $c->get(AnnouncementManager::class),
-                $c->get(AnnouncementRepositoryInterface::class)
+                    $c->get(AnnouncementManager::class),
+                    $c->get(AnnouncementRepositoryInterface::class)
             );
         });
 
