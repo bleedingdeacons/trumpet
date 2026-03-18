@@ -4,6 +4,11 @@ declare(strict_types=1);
 
 namespace Trumpet\Announcement;
 
+// Prevent direct access
+if (!defined('ABSPATH')) {
+    exit;
+}
+
 use Exception;
 use Trumpet\Config\TrumpetConfig;
 
@@ -57,6 +62,7 @@ class AnnouncementChangeTracker
                 error_log('Original announcement captured for post ID: ' . $post_id);
             }
         } catch (Exception $e) {
+            // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
             error_log('Error capturing original announcement: ' . $e->getMessage());
         }
     }
@@ -109,6 +115,7 @@ class AnnouncementChangeTracker
 
             self::$originalAnnouncement = null;
         } catch (Exception $e) {
+            // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
             error_log('Error checking for announcement changes: ' . $e->getMessage());
         }
     }

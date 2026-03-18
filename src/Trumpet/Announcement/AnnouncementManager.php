@@ -4,6 +4,11 @@ declare(strict_types=1);
 
 namespace Trumpet\Announcement;
 
+// Prevent direct access
+if (!defined('ABSPATH')) {
+    exit;
+}
+
 use Exception;
 use Trumpet\Exception\AnnouncementException;
 use Unity\Meetings\Interfaces\MeetingRepository;

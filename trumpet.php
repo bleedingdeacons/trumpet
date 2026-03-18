@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Trumpet
  * Description: An announcement management plugin.
- * Version: 2.0.5
+ * Version: 2.0.6
  * Requires at least: 6.0
  * Requires PHP: 8.0
  * Author: The Bleeding Deacons
@@ -72,7 +72,9 @@ add_action('unity/loaded', function($unityContainer) {
         do_action('trumpet/loaded', $unityContainer);
 
     } catch (\Exception $e) {
+        // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
         error_log('Trumpet Plugin Initialization Error: ' . $e->getMessage());
+        // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
         error_log('Trumpet Plugin Stack Trace: ' . $e->getTraceAsString());
 
         if (is_admin()) {
@@ -88,7 +90,9 @@ add_action('unity/loaded', function($unityContainer) {
         return;
 
     } catch (\Throwable $e) {
+        // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
         error_log('Trumpet Plugin Fatal Error: ' . $e->getMessage());
+        // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
         error_log('Trumpet Plugin Stack Trace: ' . $e->getTraceAsString());
 
         if (is_admin()) {
@@ -143,6 +147,7 @@ function trumpet_plugin_uninstall(): void
         // Clear any remaining caches
         wp_cache_flush();
     } catch (\Exception $e) {
+        // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
         error_log('Error during plugin uninstall: ' . $e->getMessage());
     }
 }

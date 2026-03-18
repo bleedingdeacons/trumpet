@@ -4,6 +4,11 @@ declare(strict_types=1);
 
 namespace Trumpet\FrontPage;
 
+// Prevent direct access
+if (!defined('ABSPATH')) {
+    exit;
+}
+
 use Exception;
 use Unity\Meetings\Interfaces\MeetingRepository;
 
@@ -58,6 +63,7 @@ class FrontPageManager
 
             return '<h1>Today\'s Meetings</h1><ul>' . $list . '</ul>';
         } catch (Exception $e) {
+            // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
             error_log('Error rendering todays_meetings shortcode: ' . $e->getMessage());
             return '<p>Sorry, an error occurred while retrieving today\'s meetings.</p>';
         }

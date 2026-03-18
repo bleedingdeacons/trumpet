@@ -4,6 +4,11 @@ declare(strict_types=1);
 
 namespace Trumpet;
 
+// Prevent direct access
+if (!defined('ABSPATH')) {
+    exit;
+}
+
 use Exception;
 use Trumpet\Admin\TrumpetAdmin;
 use Trumpet\Admin\TrumpetSettings;
@@ -152,6 +157,7 @@ class Plugin
 
             error_log('Announcement plugin deactivated successfully');
         } catch (Exception $e) {
+            // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
             error_log('Error during plugin deactivation: ' . $e->getMessage());
         }
     }

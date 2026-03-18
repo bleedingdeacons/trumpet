@@ -4,6 +4,11 @@ declare(strict_types=1);
 
 namespace Trumpet\Announcement;
 
+// Prevent direct access
+if (!defined('ABSPATH')) {
+    exit;
+}
+
 use DateTime;
 use Exception;
 use InvalidArgumentException;
@@ -150,6 +155,7 @@ class Announcement
             $date = DateTime::createFromFormat('d/m/Y', $dateString);
             return $date ?: null;
         } catch (Exception $e) {
+            // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
             error_log("Date parsing error: " . $e->getMessage());
             return null;
         }

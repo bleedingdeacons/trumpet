@@ -4,6 +4,11 @@ declare(strict_types=1);
 
 namespace Trumpet\Announcement;
 
+// Prevent direct access
+if (!defined('ABSPATH')) {
+    exit;
+}
+
 use DateTime;
 use Exception;
 use WP_Post;
@@ -86,6 +91,7 @@ class AnnouncementRepository implements AnnouncementRepositoryInterface
                     do_action('announcement_in_review', $announcement);
                 }
             } catch (Exception $e) {
+                // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
                 error_log('Error handling status transition: ' . $e->getMessage());
             }
         }

@@ -4,6 +4,11 @@ declare(strict_types=1);
 
 namespace Trumpet\Config;
 
+// Prevent direct access
+if (!defined('ABSPATH')) {
+    exit;
+}
+
 /**
  * Configuration class for Trumpet plugin
  */

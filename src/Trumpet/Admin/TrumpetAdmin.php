@@ -4,6 +4,11 @@ declare(strict_types=1);
 
 namespace Trumpet\Admin;
 
+// Prevent direct access
+if (!defined('ABSPATH')) {
+    exit;
+}
+
 use DateTime;
 use Exception;
 use WP_Post;
