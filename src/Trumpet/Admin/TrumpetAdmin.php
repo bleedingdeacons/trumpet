@@ -550,7 +550,7 @@ class TrumpetAdmin
      */
     private function logError(string $context, Exception $e): void
     {
-        error_log(sprintf(
+        \Trumpet\Plugin::logError(sprintf(
             '[Trumpet Admin] %s: %s in %s:%d',
             $context,
             $e->getMessage(),

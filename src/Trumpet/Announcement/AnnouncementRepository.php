@@ -91,8 +91,7 @@ class AnnouncementRepository implements AnnouncementRepositoryInterface
                     do_action('announcement_in_review', $announcement);
                 }
             } catch (Exception $e) {
-                // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
-                error_log('Error handling status transition: ' . $e->getMessage());
+                \Trumpet\Plugin::logError('Error handling status transition: ' . $e->getMessage(), ['exception' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
             }
         }
     }
@@ -115,7 +114,7 @@ class AnnouncementRepository implements AnnouncementRepositoryInterface
         $this->cache->delete(TrumpetConfig::ANNOUNCEMENTS_CACHE_KEY);
 
         if (defined('WP_DEBUG') && WP_DEBUG) {
-            error_log(sprintf(
+            \Trumpet\Plugin::logError(sprintf(
                 'Announcement cache cleared due to update on post ID: %s',
                 $post_id ?? 'unknown'
             ));

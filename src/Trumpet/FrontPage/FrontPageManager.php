@@ -63,8 +63,7 @@ class FrontPageManager
 
             return '<h1>Today\'s Meetings</h1><ul>' . $list . '</ul>';
         } catch (Exception $e) {
-            // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
-            error_log('Error rendering todays_meetings shortcode: ' . $e->getMessage());
+            \Trumpet\Plugin::logError('Error rendering todays_meetings shortcode: ' . $e->getMessage(), ['exception' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
             return '<p>Sorry, an error occurred while retrieving today\'s meetings.</p>';
         }
     }

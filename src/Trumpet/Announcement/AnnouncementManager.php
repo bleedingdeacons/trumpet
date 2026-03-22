@@ -411,7 +411,7 @@ class AnnouncementManager
      */
     private function logError(string $context, Exception $e): void
     {
-        error_log(sprintf(
+        \Trumpet\Plugin::logError(sprintf(
             '[Announcement Plugin] %s: %s in %s:%d',
             $context,
             $e->getMessage(),

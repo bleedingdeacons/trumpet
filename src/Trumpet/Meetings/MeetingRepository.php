@@ -243,6 +243,6 @@ class MeetingRepository implements MeetingRepositoryInterface
         }
 
         $contextStr = empty($context) ? '' : ' ' . json_encode($context);
-        error_log("[Meeting Repository Error] {$message}{$contextStr}");
+        \Trumpet\Plugin::logError("[Meeting Repository Error] {$message}{$contextStr}");
     }
 }

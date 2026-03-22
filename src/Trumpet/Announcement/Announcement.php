@@ -155,8 +155,7 @@ class Announcement
             $date = DateTime::createFromFormat('d/m/Y', $dateString);
             return $date ?: null;
         } catch (Exception $e) {
-            // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
-            error_log("Date parsing error: " . $e->getMessage());
+            \Trumpet\Plugin::logError('Date parsing error: ' . $e->getMessage(), ['exception' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
             return null;
         }
     }

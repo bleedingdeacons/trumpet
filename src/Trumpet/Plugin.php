@@ -35,6 +35,13 @@ use function is_admin;
  */
 class Plugin
 {
+    use \Trumpet\Logger\HasLogger;
+
+    protected static function logChannel(): string
+    {
+        return 'trumpet';
+    }
+
     private static ?ContainerInterface $container = null;
     private static bool $initialized = false;
 
@@ -155,10 +162,9 @@ class Plugin
                 delete_option($option);
             }
 
-            error_log('Announcement plugin deactivated successfully');
+            \Trumpet\Plugin::logError('Announcement plugin deactivated successfully');
         } catch (Exception $e) {
-            // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
-            error_log('Error during plugin deactivation: ' . $e->getMessage());
+            \Trumpet\Plugin::logError('Error during plugin deactivation: ' . $e->getMessage(), ['exception' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
         }
     }
 

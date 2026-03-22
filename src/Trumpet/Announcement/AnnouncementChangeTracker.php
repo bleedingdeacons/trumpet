@@ -59,11 +59,10 @@ class AnnouncementChangeTracker
             self::$originalAnnouncement = $this->repository->findById($post_id);
 
             if (defined('WP_DEBUG') && WP_DEBUG) {
-                error_log('Original announcement captured for post ID: ' . $post_id);
+                \Trumpet\Plugin::logError('Original announcement captured for post ID: ' . $post_id);
             }
         } catch (Exception $e) {
-            // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
-            error_log('Error capturing original announcement: ' . $e->getMessage());
+            \Trumpet\Plugin::logError('Error capturing original announcement: ' . $e->getMessage(), ['exception' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
         }
     }
 
@@ -80,7 +79,7 @@ class AnnouncementChangeTracker
 
         if (!self::$originalAnnouncement) {
             if (defined('WP_DEBUG') && WP_DEBUG) {
-                error_log('No original announcement captured for comparison, post ID: ' . $post_id);
+                \Trumpet\Plugin::logError('No original announcement captured for comparison, post ID: ' . $post_id);
             }
             return;
         }
@@ -89,13 +88,13 @@ class AnnouncementChangeTracker
             $updatedAnnouncement = $this->repository->findById($post_id);
 
             if (!$updatedAnnouncement) {
-                error_log('Could not fetch updated announcement for post ID: ' . $post_id);
+                \Trumpet\Plugin::logError('Could not fetch updated announcement for post ID: ' . $post_id);
                 return;
             }
 
             if ($this->repository->hasAnnouncementChanged(self::$originalAnnouncement, $updatedAnnouncement)) {
                 if (defined('WP_DEBUG') && WP_DEBUG) {
-                    error_log('Changes detected in announcement ID: ' . $post_id . ', firing announcement_changed hook');
+                    \Trumpet\Plugin::logError('Changes detected in announcement ID: ' . $post_id . ', firing announcement_changed hook');
                 }
 
                 $post = get_post($post_id);
@@ -109,14 +108,13 @@ class AnnouncementChangeTracker
                 do_action('announcement_changed', $updatedAnnouncement, self::$originalAnnouncement);
             } else {
                 if (defined('WP_DEBUG') && WP_DEBUG) {
-                    error_log('No changes detected in announcement ID: ' . $post_id);
+                    \Trumpet\Plugin::logError('No changes detected in announcement ID: ' . $post_id);
                 }
             }
 
             self::$originalAnnouncement = null;
         } catch (Exception $e) {
-            // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
-            error_log('Error checking for announcement changes: ' . $e->getMessage());
+            \Trumpet\Plugin::logError('Error checking for announcement changes: ' . $e->getMessage(), ['exception' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
         }
     }
 }

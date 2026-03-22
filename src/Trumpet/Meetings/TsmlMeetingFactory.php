@@ -372,6 +372,6 @@ class TsmlMeetingFactory implements MeetingFactoryInterface
     {
         $context['class'] = $context['class'] ?? __CLASS__;
         $contextStr = empty($context) ? '' : ' ' . json_encode($context);
-        error_log("[Meeting Factory Error] {$message}{$contextStr}");
+        \Trumpet\Plugin::logError("[Meeting Factory Error] {$message}{$contextStr}");
     }
 }
