@@ -69,6 +69,8 @@ class Plugin
 
         self::$initialized = true;
 
+        self::logInfo('Trumpet initialised', ['version' => defined('TRUMPET_VERSION') ? TRUMPET_VERSION : 'unknown']);
+
         // Initialize services based on context
         if (is_admin()) {
             // Register menu early (priority 5) so it exists before ACF adds post type submenus
