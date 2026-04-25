@@ -218,9 +218,11 @@ class AnnouncementManager
         $output = '<div class="meeting_list">';
 
         foreach ($list as $item) {
+
             $meeting = $this->meetingRepository->find($item);
 
             if (!empty($meeting)) {
+
                 if ($meeting->isOnline()) {
                     $type = '<span class="online dashicons dashicons-admin-site-alt3"></span>';
                 } else {
