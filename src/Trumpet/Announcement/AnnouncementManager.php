@@ -219,7 +219,7 @@ class AnnouncementManager
 
         foreach ($list as $item) {
 
-            $meeting = $this->meetingRepository->find($item);
+            $meeting = $this->meetingRepository->findById((int) $item);
 
             if (!empty($meeting)) {
 

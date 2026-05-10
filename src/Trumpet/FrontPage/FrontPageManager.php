@@ -10,6 +10,7 @@ if (!defined('ABSPATH')) {
 }
 
 use Exception;
+use Unity\Meetings\Interfaces\Meeting;
 use Unity\Meetings\Interfaces\MeetingRepository;
 
 /**
@@ -43,17 +44,15 @@ class FrontPageManager
         try {
             // Get current day (0 for Sunday, 1 for Monday, etc.)
             $current_day = intval(current_time('w'));
-            $meetings = $this->repository->findAll(['day' => $current_day]);
+            $meetings = $this->repository->findByDay($current_day);
             $list = '';
 
             foreach ($meetings as $meeting) {
-                $location = ($meeting->isOnline()) ? 'Online' : $meeting->getLocation();
-
                 $list .= '<li class="meeting">';
                 $list .= '<div class="time">' . esc_html($meeting->getTime()) . ' - ';
                 $list .= '<a href="' . esc_url($meeting->getUrl()) . '">' . esc_html($meeting->getName()) . '</a>';
                 $list .= '</div>';
-                $list .= '<div class="attendance-option">' . esc_html($location) . '</div>';
+                $list .= '<div class="attendance-option">' . $this->renderAttendanceOption($meeting) . '</div>';
                 $list .= '</li>';
             }
 
@@ -66,5 +65,40 @@ class FrontPageManager
             \Trumpet\Plugin::logError('Error rendering todays_meetings shortcode: ' . $e->getMessage(), ['exception' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
             return '<p>Sorry, an error occurred while retrieving today\'s meetings.</p>';
         }
+    }
+
+    /**
+     * Render the attendance option cell for a meeting.
+     *
+     * Online meetings display the word "Online". In-person meetings display the
+     * location name linked to its permalink when available; meetings with no
+     * resolvable location render an empty string.
+     *
+     * @param Meeting $meeting Meeting to render attendance for.
+     * @return string HTML fragment (safe to embed; values are escaped).
+     */
+    private function renderAttendanceOption(Meeting $meeting): string
+    {
+        if ($meeting->isOnline()) {
+            return esc_html__('Online', 'trumpet');
+        }
+
+        $location = $meeting->getLocation();
+        if ($location === null) {
+            return '';
+        }
+
+        $name = $location->getName();
+        $link = $location->getLink();
+
+        if ($link !== '') {
+            return sprintf(
+                '<a href="%s">%s</a>',
+                esc_url($link),
+                esc_html($name)
+            );
+        }
+
+        return esc_html($name);
     }
 }
