@@ -17,7 +17,6 @@ use Trumpet\Announcement\AnnouncementManager;
 use Trumpet\Announcement\AnnouncementRepository;
 use Trumpet\Announcement\AnnouncementRepositoryInterface;
 use Trumpet\Config\TrumpetConfig;
-use Trumpet\FrontPage\FrontPageManager;
 use Psr\Container\ContainerInterface;
 use Unity\Core\Interfaces\Container;
 use Unity\Core\Interfaces\Cache;
@@ -82,7 +81,6 @@ class Plugin
 
         $unityContainer->get(AnnouncementChangeTracker::class);
         $unityContainer->get(AnnouncementManager::class);
-        $unityContainer->get(FrontPageManager::class);
     }
 
     /**
@@ -285,13 +283,6 @@ class Plugin
         $container->register(AnnouncementChangeTracker::class, function (ContainerInterface $c) {
             return new AnnouncementChangeTracker(
                     $c->get(AnnouncementRepositoryInterface::class)
-            );
-        });
-
-        // Register FrontPage Manager
-        $container->register(FrontPageManager::class, function (ContainerInterface $c) {
-            return new FrontPageManager(
-                    $c->get(MeetingRepository::class)
             );
         });
 

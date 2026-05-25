@@ -599,7 +599,6 @@ PSR-4 Structure:
       ├── Common/         - Shared utilities (DI container, cache)
       ├── Config/         - Configuration constants
       ├── Exception/      - Custom exceptions
-      ├── FrontPage/      - Front-end shortcodes
       └── Meetings/       - Meeting entities and repositories
 
 Platform-Specific Notes:
