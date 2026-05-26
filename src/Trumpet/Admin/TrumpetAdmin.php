@@ -488,9 +488,8 @@ class TrumpetAdmin
     {
         try {
             $announcements = $this->manager->getAnnouncements();
-            $today = new DateTime();
-            return count(array_filter($announcements, function ($announcement) use ($today) {
-                return $announcement->getEndDate() && $announcement->getEndDate() < $today;
+            return count(array_filter($announcements, function ($announcement) {
+                return $announcement->getStatusText() === 'Expired';
             }));
         } catch (Exception $e) {
             $this->logError("Error counting expired announcements", $e);
