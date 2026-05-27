@@ -4,6 +4,11 @@ declare(strict_types=1);
 
 namespace Trumpet\Common;
 
+// Prevent direct access
+if (!defined('ABSPATH')) {
+    exit;
+}
+
 /**
  * Interface CacheInterface
  * Defines the contract for cache implementations

@@ -4,6 +4,11 @@ declare(strict_types=1);
 
 namespace Trumpet\Admin;
 
+// Prevent direct access
+if (!defined('ABSPATH')) {
+    exit;
+}
+
 use DateTime;
 use Exception;
 use WP_Post;
@@ -483,9 +488,8 @@ class TrumpetAdmin
     {
         try {
             $announcements = $this->manager->getAnnouncements();
-            $today = new DateTime();
-            return count(array_filter($announcements, function ($announcement) use ($today) {
-                return $announcement->getEndDate() && $announcement->getEndDate() < $today;
+            return count(array_filter($announcements, function ($announcement) {
+                return $announcement->getStatusText() === 'Expired';
             }));
         } catch (Exception $e) {
             $this->logError("Error counting expired announcements", $e);
@@ -545,7 +549,7 @@ class TrumpetAdmin
      */
     private function logError(string $context, Exception $e): void
     {
-        error_log(sprintf(
+        \Trumpet\Plugin::logError(sprintf(
             '[Trumpet Admin] %s: %s in %s:%d',
             $context,
             $e->getMessage(),

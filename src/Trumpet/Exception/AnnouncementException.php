@@ -4,6 +4,11 @@ declare(strict_types=1);
 
 namespace Trumpet\Exception;
 
+// Prevent direct access
+if (!defined('ABSPATH')) {
+    exit;
+}
+
 use Exception;
 use Throwable;
 
@@ -27,7 +32,7 @@ class AnnouncementException extends Exception
         parent::__construct($message, $code, $previous);
 
         // Log the error
-        error_log(sprintf(
+        \Trumpet\Plugin::logError(sprintf(
             '[Announcement Error] %s in %s:%d',
             $message,
             $this->getFile(),

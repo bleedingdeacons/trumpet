@@ -4,6 +4,11 @@ declare(strict_types=1);
 
 namespace Trumpet\Announcement;
 
+// Prevent direct access
+if (!defined('ABSPATH')) {
+    exit;
+}
+
 use Exception;
 use Trumpet\Exception\AnnouncementException;
 use Unity\Meetings\Interfaces\MeetingRepository;
@@ -213,9 +218,11 @@ class AnnouncementManager
         $output = '<div class="meeting_list">';
 
         foreach ($list as $item) {
-            $meeting = $this->meetingRepository->find($item);
+
+            $meeting = $this->meetingRepository->findById((int) $item);
 
             if (!empty($meeting)) {
+
                 if ($meeting->isOnline()) {
                     $type = '<span class="online dashicons dashicons-admin-site-alt3"></span>';
                 } else {
@@ -406,7 +413,7 @@ class AnnouncementManager
      */
     private function logError(string $context, Exception $e): void
     {
-        error_log(sprintf(
+        \Trumpet\Plugin::logError(sprintf(
             '[Announcement Plugin] %s: %s in %s:%d',
             $context,
             $e->getMessage(),
