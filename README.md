@@ -4,7 +4,7 @@
 
 Trumpet adds an *Announcements* custom post type to WordPress, with an admin interface for creating, scheduling, and managing announcements. It also provides a `[todays_meetings]` shortcode that renders today's meetings on the front page. Trumpet hooks into Unity's container for meeting data and uses Scrutiny's audit tracking for change detection.
 
-**Version:** 2.2.3
+**Version:** 2.2.4
 **Requires:** WordPress 6.0+ · PHP 8.0+
 **Dependencies:** Unity
 **License:** MIT (Modified — see [License](#license))
