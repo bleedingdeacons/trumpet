@@ -5,6 +5,8 @@
  * Version: 2.2.4
  * Requires at least: 6.0
  * Requires PHP: 8.0
+ * GitHub Plugin URI: https://github.com/thebleedingdeacons/trumpet
+ * GitHub Branch: main
  * Author: The Bleeding Deacons
  * Author URI: https://github.com/bleedingdeacons/trumpet
  * Contact: thebleedingdeacons@gmail.com
