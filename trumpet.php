@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Trumpet
  * Description: An announcement management plugin.
- * Version: 2.2.4
+ * Version: 2.2.6
  * Requires at least: 6.0
  * Requires PHP: 8.0
  * GitHub Plugin URI: https://github.com/thebleedingdeacons/trumpet
@@ -106,12 +106,17 @@ add_action('unity/loaded', function($unityContainer) {
     }
 }, 10);
 
-// Show admin notice if Unity plugin is not active
-add_action('admin_notices', function() {
-    if (!function_exists('unity') && !did_action('unity/loaded')) {
-        echo '<div class="notice notice-warning is-dismissible"><p><strong>Trumpet:</strong> This plugin requires the Unity plugin to be installed and activated.</p></div>';
+// Show admin notice if Unity is not available.
+add_action('plugins_loaded', function () {
+    if (!class_exists('Unity\\Plugin')) {
+        add_action('admin_notices', function () {
+            echo '<div class="notice notice-error"><p>';
+            echo '<strong>' . esc_html__('Trumpet', 'trumpet') . ':</strong> ';
+            echo esc_html__('This plugin requires the Unity plugin to be installed and activated.', 'trumpet');
+            echo '</p></div>';
+        });
     }
-});
+}, 20);
 
 // Register activation/deactivation hooks
 register_deactivation_hook(__FILE__, [ 'Trumpet\\Plugin', 'deactivate']);
