@@ -47,7 +47,7 @@
             "php build.php --clean-only"
         ],
         "version": [
-            "@php -r \"$f='Trumpet.php'; if(file_exists($f)){ $c=file_get_contents($f); if(preg_match('/Version:\\s*([0-9.]+)/',$c,$m)){ echo 'Current plugin version: '.$m[1].PHP_EOL; exit(0); }} echo 'Version not found'.PHP_EOL; exit(1);\""
+            "@php -r \"$f='trumpet.php'; if(file_exists($f)){ $c=file_get_contents($f); if(preg_match('/Version:\\s*([0-9.]+)/',$c,$m)){ echo 'Current plugin version: '.$m[1].PHP_EOL; exit(0); }} echo 'Version not found'.PHP_EOL; exit(1);\""
         ],
         "help": [
             "php build.php --help"
@@ -80,9 +80,6 @@
             "@phpcs",
             "@phpstan",
             "@test"
-        ],
-        "post-autoload-dump": [
-            "@version"
         ]
     },
     "scripts-descriptions": {
