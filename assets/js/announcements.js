@@ -24,6 +24,11 @@
 	var STORAGE_KEY = 'trumpet_last_seen';
 	var LABEL_DEFAULT = 'Announcements';
 
+	// Page furniture, not plugin markup: the theme-side element that scrolls to
+	// the announcements when clicked, and the element it scrolls to.
+	var JUMP_ID = 'announce-jump';
+	var JUMP_TARGET_ID = 'announcement-top';
+
 	/**
 	 * Build the banner label for a number of unseen announcements.
 	 *
@@ -186,9 +191,53 @@
 		});
 	}
 
-	if (document.readyState === 'loading') {
-		document.addEventListener('DOMContentLoaded', init);
-	} else {
+	/**
+	 * Wire the "jump to announcements" element.
+	 *
+	 * A theme-side element carrying the CSS ID `announce-jump` (e.g. a Divi
+	 * text module — typically the same one styled off the `trumpet-has-new`
+	 * body class) smooth-scrolls to `#announcement-top` when clicked. Both IDs
+	 * are page furniture rather than plugin markup, so this quietly does
+	 * nothing when either is absent.
+	 *
+	 * The listener is bound in the capture phase and stops immediate
+	 * propagation so it runs ahead of Divi's own jQuery click handler on the
+	 * module.
+	 */
+	function initJump() {
+		var mod = document.getElementById(JUMP_ID);
+		if (!mod) {
+			return;
+		}
+
+		mod.style.cursor = 'pointer';
+
+		mod.addEventListener('click', function (e) {
+			// Only swallow the click once there is somewhere to send it;
+			// otherwise leave the element behaving as it normally would.
+			var target = document.getElementById(JUMP_TARGET_ID);
+			if (!target) {
+				return;
+			}
+
+			e.preventDefault();
+			e.stopImmediatePropagation();
+			target.scrollIntoView({ behavior: 'smooth' });
+		}, true);
+	}
+
+	/**
+	 * The jump wiring is independent of the indicator: init() bails early on
+	 * pages with no banner or nothing unseen, and the jump must work anyway.
+	 */
+	function boot() {
+		initJump();
 		init();
+	}
+
+	if (document.readyState === 'loading') {
+		document.addEventListener('DOMContentLoaded', boot);
+	} else {
+		boot();
 	}
 })();

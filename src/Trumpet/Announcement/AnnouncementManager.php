@@ -68,8 +68,8 @@ class AnnouncementManager
      * Register front-end assets.
      *
      * Registered (not enqueued) here so the script is only loaded on pages
-     * that actually render the [list_announcements] shortcode, which calls
-     * wp_enqueue_script('trumpet-announcements') when it runs.
+     * that actually render the [announcements_indicator] shortcode, which
+     * calls wp_enqueue_script('trumpet-announcements') when it runs.
      */
     public function registerAssets(): void
     {
