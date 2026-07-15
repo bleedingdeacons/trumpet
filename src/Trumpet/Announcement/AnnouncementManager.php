@@ -47,9 +47,9 @@ class AnnouncementManager
      * Exposed as the [announcements_indicator] shortcode so it can be placed
      * anywhere on the page — typically above the [list_announcements] output.
      * It reads "Announcements" by default; the front-end script changes the
-     * label to "New Announcements" when an announcement was published after the
-     * visitor last scrolled the list into view, and back once they have been
-     * scrolled to.
+     * label to a count of the announcements published since the visitor last
+     * scrolled the list into view (e.g. "3 New Announcements"), counting down
+     * as they are scrolled to and reverting once none are left.
      *
      * @param array  $atts    Shortcode attributes
      * @param string $content Shortcode content

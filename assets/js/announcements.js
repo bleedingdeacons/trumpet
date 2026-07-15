@@ -3,11 +3,11 @@
  *
  * Stores the publish timestamp (Unix seconds) of the newest announcement the
  * visitor has actually scrolled into view, in localStorage. On load it compares
- * the newest announcement on the page against that stored value and, if newer
- * ones exist, sets the [announcements_indicator] banner label to "New
- * Announcements". The label reverts to "Announcements" — and the stored value
- * advances — only once the announcements have been scrolled into view, tracked
- * with an IntersectionObserver.
+ * each announcement on the page against that stored value and, if newer ones
+ * exist, sets the [announcements_indicator] banner label to a count of them —
+ * e.g. "3 New Announcements". The count ticks down as they are scrolled into
+ * view (tracked with an IntersectionObserver), and the label reverts to
+ * "Announcements" — with the stored value advanced — once none are left.
  *
  * The banner ([announcements_indicator]) and the list ([list_announcements])
  * are independent shortcodes, so both are looked up at document scope rather
@@ -23,7 +23,18 @@
 
 	var STORAGE_KEY = 'trumpet_last_seen';
 	var LABEL_DEFAULT = 'Announcements';
-	var LABEL_NEW = 'New Announcements';
+
+	/**
+	 * Build the banner label for a number of unseen announcements.
+	 *
+	 * @param {number} count Unseen announcements, always 1 or more
+	 * @return {string}
+	 */
+	function newLabel(count) {
+		return count === 1
+			? '1 New Announcement'
+			: count + ' New Announcements';
+	}
 
 	/**
 	 * Set the banner label text and toggle the "has new" state.
@@ -114,13 +125,14 @@
 			return;
 		}
 
-		setBannerLabel(banner, LABEL_NEW, true);
+		setBannerLabel(banner, newLabel(unseen.length), true);
 		watchUnseen(unseen, newest, banner);
 	}
 
 	/**
 	 * Watch the unseen announcements; as each scrolls into view, advance the
-	 * stored timestamp. Once the newest has been seen, revert the banner label.
+	 * stored timestamp and drop it from the banner count. Once none are left
+	 * unseen, revert the banner label.
 	 *
 	 * @param {HTMLElement[]} unseen
 	 * @param {number}        newest
@@ -128,13 +140,13 @@
 	 */
 	function watchUnseen(unseen, newest, banner) {
 		// Fallback for browsers without IntersectionObserver: mark all seen for
-		// the next visit, but leave the "New Announcements" label for this one.
+		// the next visit, but leave the count on the label for this one.
 		if (!('IntersectionObserver' in window)) {
 			writeLastSeen(newest);
 			return;
 		}
 
-		var seenMax = 0;
+		var remaining = unseen.length;
 
 		var observer = new IntersectionObserver(function (entries) {
 			entries.forEach(function (entry) {
@@ -144,18 +156,25 @@
 
 				var el = entry.target;
 				var published = parseInt(el.getAttribute('data-published'), 10);
-				if (!isNaN(published) && published > seenMax) {
-					seenMax = published;
+				if (!isNaN(published)) {
+					writeLastSeen(published);
 				}
 
 				el.classList.remove('announcement--unseen');
-				writeLastSeen(published);
 				observer.unobserve(el);
 
-				if (seenMax >= newest) {
-					setBannerLabel(banner, LABEL_DEFAULT, false);
-					observer.disconnect();
+				// Every element here came from `unseen`, and each is unobserved
+				// on its first intersection, so this counts down exactly once
+				// per unseen announcement.
+				remaining--;
+
+				if (remaining > 0) {
+					setBannerLabel(banner, newLabel(remaining), true);
+					return;
 				}
+
+				setBannerLabel(banner, LABEL_DEFAULT, false);
+				observer.disconnect();
 			});
 		}, {
 			// Count as "seen" once a reasonable slice is on screen.
