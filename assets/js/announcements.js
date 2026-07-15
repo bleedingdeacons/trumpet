@@ -24,6 +24,10 @@
 	var STORAGE_KEY = 'trumpet_last_seen';
 	var LABEL_DEFAULT = 'Announcements';
 
+	// How much must be on screen to count as seen — read both ways: half the
+	// announcement, or half the screen. See isSeen().
+	var SEEN_RATIO = 0.5;
+
 	// Page furniture, not plugin markup: the theme-side element that scrolls to
 	// the announcements when clicked, and the element it scrolls to.
 	var JUMP_ID = 'announce-jump';
@@ -39,6 +43,52 @@
 		return count === 1
 			? '1 New Announcement'
 			: count + ' New Announcements';
+	}
+
+	/**
+	 * Has this announcement been on screen enough to count as seen?
+	 *
+	 * Either half of it is showing, or — for an announcement taller than the
+	 * window — it fills at least half the screen. The second clause is what
+	 * makes long announcements work: a tall one can be read end to end and
+	 * never have half of itself visible at once.
+	 *
+	 * @param {IntersectionObserverEntry} entry
+	 * @return {boolean}
+	 */
+	function isSeen(entry) {
+		if (!entry.isIntersecting) {
+			return false;
+		}
+
+		if (entry.intersectionRatio >= SEEN_RATIO) {
+			return true;
+		}
+
+		var rootHeight = entry.rootBounds
+			? entry.rootBounds.height
+			: window.innerHeight;
+
+		return entry.intersectionRect.height >= rootHeight * SEEN_RATIO;
+	}
+
+	/**
+	 * Thresholds to observe at.
+	 *
+	 * A single 0.5 threshold cannot work: the observer only fires when the
+	 * visible ratio crosses a threshold, and an announcement taller than twice
+	 * the window never reaches a ratio of 0.5 — so it would never fire at all.
+	 * Observing across the whole range keeps the callback firing as any
+	 * announcement scrolls through, whatever its height, and isSeen() decides.
+	 *
+	 * @return {number[]}
+	 */
+	function buildThresholds() {
+		var steps = [];
+		for (var i = 0; i <= 100; i++) {
+			steps.push(i / 100);
+		}
+		return steps;
 	}
 
 	/**
@@ -155,7 +205,7 @@
 
 		var observer = new IntersectionObserver(function (entries) {
 			entries.forEach(function (entry) {
-				if (!entry.isIntersecting) {
+				if (!isSeen(entry)) {
 					return;
 				}
 
@@ -182,8 +232,7 @@
 				observer.disconnect();
 			});
 		}, {
-			// Count as "seen" once a reasonable slice is on screen.
-			threshold: 0.5
+			threshold: buildThresholds()
 		});
 
 		unseen.forEach(function (el) {
