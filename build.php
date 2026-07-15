@@ -218,7 +218,7 @@ class PluginBuilder
      */
     private function getVersionFromPlugin(): string
     {
-        $mainFile = $this->pluginDir . DIRECTORY_SEPARATOR . 'Trumpet.php';
+        $mainFile = $this->pluginDir . DIRECTORY_SEPARATOR . 'trumpet.php';
         if (file_exists($mainFile)) {
             $content = file_get_contents($mainFile);
             if (preg_match('/Version:\s*([0-9.]+)/', $content, $matches)) {
