@@ -447,6 +447,23 @@ class Announcement
     }
 
     /**
+     * Get the full publication timestamp (Unix, second precision).
+     *
+     * Unlike getPostDate(), which is parsed from a d/m/Y string and is only
+     * day-accurate, this returns the post's exact publish time. Used by the
+     * front end to detect announcements published since the visitor last
+     * scrolled the list into view.
+     *
+     * @return int Unix timestamp, or 0 if unavailable
+     */
+    public function getPublishedTimestamp(): int
+    {
+        $timestamp = get_post_timestamp($this->id);
+
+        return $timestamp !== false ? (int) $timestamp : 0;
+    }
+
+    /**
      * Check if the announcement is hidden
      *
      * @return bool

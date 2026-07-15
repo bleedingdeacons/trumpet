@@ -36,7 +36,50 @@ class AnnouncementManager
 
         // Register hooks
         add_shortcode('list_announcements', [$this, 'generateAnnouncementsList']);
+        add_shortcode('announcements_indicator', [$this, 'renderNewIndicator']);
         add_action('wp_head', [$this, 'addStyles']);
+        add_action('wp_enqueue_scripts', [$this, 'registerAssets']);
+    }
+
+    /**
+     * Render the "new announcements" indicator banner.
+     *
+     * Exposed as the [announcements_indicator] shortcode so it can be placed
+     * anywhere on the page — typically above the [list_announcements] output.
+     * It reads "Announcements" by default; the front-end script changes the
+     * label to a count of the announcements published since the visitor last
+     * scrolled the list into view (e.g. "3 New Announcements"), counting down
+     * as they are scrolled to and reverting once none are left.
+     *
+     * @param array  $atts    Shortcode attributes
+     * @param string $content Shortcode content
+     * @return string
+     */
+    public function renderNewIndicator(array $atts = [], string $content = ''): string
+    {
+        wp_enqueue_script('trumpet-announcements');
+
+        return '<div class="announcements-new-banner" role="status" aria-live="polite">'
+            . '<span class="announcements-new-banner__text">Announcements</span>'
+            . '</div>';
+    }
+
+    /**
+     * Register front-end assets.
+     *
+     * Registered (not enqueued) here so the script is only loaded on pages
+     * that actually render the [announcements_indicator] shortcode, which
+     * calls wp_enqueue_script('trumpet-announcements') when it runs.
+     */
+    public function registerAssets(): void
+    {
+        wp_register_script(
+            'trumpet-announcements',
+            TRUMPET_PLUGIN_URL . 'assets/js/announcements.js',
+            [],
+            TRUMPET_VERSION,
+            true
+        );
     }
 
     /**
@@ -93,7 +136,10 @@ class AnnouncementManager
      */
     private function renderSingleAnnouncement(Announcement $announcement): string
     {
-        $output = '<div class="announcement">';
+        $output = sprintf(
+            '<div class="announcement" data-published="%d">',
+            $announcement->getPublishedTimestamp()
+        );
 
         // Title with edit link for admins
         $title_output = sprintf('<h2>%s</h2>', esc_html($announcement->getTitle()));
@@ -292,6 +338,11 @@ class AnnouncementManager
                 padding: 1em;
                 border: 1px solid #ddd;
                 border-radius: 4px;
+            }
+
+            .announcement.announcement--unseen {
+                border-color: #0073aa;
+                box-shadow: 0 0 0 1px #0073aa;
             }
 
             .announcement h2 {
