@@ -3,8 +3,8 @@ Contributors: thebleedingdeacons
 Tags: announcements, notifications, front-page, meetings
 Requires at least: 6.0
 Tested up to: 6.9
-Stable tag: 2.5.3
-Build date: 2026/07/15 22:26:09
+Stable tag: 2.5.4
+Build date: 2026/07/17 15:47:15
 Requires PHP: 8.1
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/old-licenses/gpl-2.0.html
