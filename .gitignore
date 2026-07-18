@@ -1,3 +1,7 @@
+# PHPUnit caches (the suite added in this change writes these)
+/.phpunit.cache/
+.phpunit.result.cache
+
 /vendor/
 /vendor/bin/php-parse
 /vendor/bin/php-parse.bat
