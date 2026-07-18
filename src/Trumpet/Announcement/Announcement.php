@@ -275,11 +275,31 @@ class Announcement
      */
     public function hasValidLocation(): bool
     {
-        return $this->showMap &&
-               isset($this->location['lat']) &&
-               isset($this->location['lng']) &&
-               $this->location['lat'] !== "0" &&
-               $this->location['lng'] !== "0";
+        if (!$this->showMap) {
+            return false;
+        }
+
+        $lat = $this->location['lat'] ?? '';
+        $lng = $this->location['lng'] ?? '';
+
+        // isset() was the original test here and could never fail:
+        // sanitizeLocation() always writes both keys, defaulting to ''. An
+        // announcement with the map switched on and no coordinates entered
+        // therefore reported a valid location. Check for an actual number
+        // instead — '' and any non-numeric value are not one.
+        if (!is_numeric($lat) || !is_numeric($lng)) {
+            return false;
+        }
+
+        // 0,0 is null island: what a failed geocode leaves behind, not
+        // somewhere anyone meets. Compared numerically because the original
+        // string test ($lat !== "0") missed '0.0' and '0.00', which are the
+        // same place written differently.
+        //
+        // Both must be zero, not either. The Greenwich meridian is longitude
+        // 0 and runs through London, so a meeting there has a legitimate
+        // lng of 0 — rejecting a single zero would hide its map.
+        return (float) $lat !== 0.0 || (float) $lng !== 0.0;
     }
 
     /**
