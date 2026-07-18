@@ -164,6 +164,9 @@ class PluginBuilder
 
         // ==== CLI TOOL ====
             'Trumpet-cli',
+
+            // Dev artefacts that must never ship
+            '.claude',
     ];
 
     // Files and directories to exclude in dev builds
