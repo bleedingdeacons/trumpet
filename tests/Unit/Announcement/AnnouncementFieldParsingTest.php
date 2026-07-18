@@ -146,54 +146,103 @@ class AnnouncementFieldParsingTest extends TestCase
     }
 
     /**
-     * CHARACTERISATION TEST — this pins a defect, not intended behaviour.
-     *
-     * hasValidLocation() checks isset($this->location['lat']), but
-     * sanitizeLocation() always writes a 'lat' and 'lng' key, defaulting to ''
-     * when the field is absent. isset() is therefore always true, and '' fails
-     * only the !== "0" guard, which it passes. So an announcement with the map
-     * switched on and no coordinates at all reports a valid location.
-     *
-     * The guard catches an explicit 0/0 but not the far more likely case of a
-     * blank location field.
-     *
-     * Asserted as-is so the suite is green and the behaviour is visible rather
-     * than assumed. Changing it alters what renders on live sites, so it is
-     * left as a separate decision; when it is fixed, this test should flip to
-     * assertFalse and be renamed.
+     * The defect this method used to have: isset() on lat/lng could never
+     * fail, because sanitizeLocation() always writes both keys, defaulting to
+     * ''. An announcement with the map switched on and nothing entered
+     * reported a valid location.
      *
      * @test
      */
-    public function characterises_bug_blank_coordinates_are_reported_as_valid(): void
+    public function blank_coordinates_are_not_a_valid_location(): void
     {
         $announcement = $this->makeAnnouncement([
             self::SHOW_MAP => true,
             self::LOCATION => [],
         ]);
 
-        $this->assertTrue(
-            $announcement->hasValidLocation(),
-            'Current (incorrect) behaviour: blank coordinates pass validation.'
-        );
+        $this->assertFalse($announcement->hasValidLocation());
     }
 
     /**
-     * The same defect from the other direction: '0.0' is a different string
-     * from '0', so the null-island guard misses it.
-     *
      * @test
      */
-    public function characterises_bug_zero_written_as_a_decimal_evades_the_null_island_guard(): void
+    public function an_empty_string_coordinate_is_not_a_valid_location(): void
     {
         $announcement = $this->makeAnnouncement([
             self::SHOW_MAP => true,
-            self::LOCATION => ['lat' => '0.0', 'lng' => '0.0'],
+            self::LOCATION => ['lat' => '', 'lng' => ''],
+        ]);
+
+        $this->assertFalse($announcement->hasValidLocation());
+    }
+
+    /**
+     * Half a location is not a location.
+     *
+     * @test
+     */
+    public function a_missing_longitude_is_not_a_valid_location(): void
+    {
+        $announcement = $this->makeAnnouncement([
+            self::SHOW_MAP => true,
+            self::LOCATION => ['lat' => '51.5074'],
+        ]);
+
+        $this->assertFalse($announcement->hasValidLocation());
+    }
+
+    /**
+     * Null island written as a decimal. The original guard compared strings
+     * against "0", so '0.0' and '0.00' walked straight through it.
+     *
+     * @test
+     */
+    public function zero_written_as_a_decimal_is_still_null_island(): void
+    {
+        foreach (['0.0', '0.00', '0'] as $zero) {
+            $announcement = $this->makeAnnouncement([
+                self::SHOW_MAP => true,
+                self::LOCATION => ['lat' => $zero, 'lng' => $zero],
+            ]);
+
+            $this->assertFalse(
+                $announcement->hasValidLocation(),
+                "Coordinates of $zero,$zero are null island however they are written."
+            );
+        }
+    }
+
+    /**
+     * A single zero is a real place. The Greenwich meridian is longitude 0 and
+     * runs through London, so an announcement there must keep its map — only
+     * 0,0 together is the failed-geocode sentinel.
+     *
+     * @test
+     */
+    public function a_location_on_the_greenwich_meridian_stays_valid(): void
+    {
+        $announcement = $this->makeAnnouncement([
+            self::SHOW_MAP => true,
+            self::LOCATION => ['lat' => '51.4779', 'lng' => '0'],
         ]);
 
         $this->assertTrue(
             $announcement->hasValidLocation(),
-            "Current (incorrect) behaviour: '0.0' is not caught by the !== '0' check."
+            'Longitude 0 is the meridian, not a missing coordinate.'
         );
+    }
+
+    /**
+     * @test
+     */
+    public function a_non_numeric_coordinate_is_not_a_valid_location(): void
+    {
+        $announcement = $this->makeAnnouncement([
+            self::SHOW_MAP => true,
+            self::LOCATION => ['lat' => 'not a number', 'lng' => 'nonsense'],
+        ]);
+
+        $this->assertFalse($announcement->hasValidLocation());
     }
 
     /**
