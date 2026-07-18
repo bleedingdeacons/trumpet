@@ -188,7 +188,14 @@ class AnnouncementManager
         );
 
         // Location/Map
-        if ($announcement->getShowMap()) {
+        //
+        // Gated on hasValidLocation() rather than getShowMap() alone. The map
+        // is drawn from data-lat/data-lng attributes, so an announcement with
+        // the map switched on and no coordinates entered emitted
+        // data-lat="" data-lng="" and left the front end to fail on it.
+        // hasValidLocation() already requires showMap, so this only ever
+        // removes maps that had nothing to point at.
+        if ($announcement->hasValidLocation()) {
             $output .= $this->renderMap($announcement->getLocation());
         }
 
