@@ -1,11 +1,14 @@
 # Trumpet
 
+[![CI](https://github.com/bleedingdeacons/trumpet/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/bleedingdeacons/trumpet/actions/workflows/ci.yml)
+![Version](https://img.shields.io/badge/version-2.5.4-blue)
+![PHP](https://img.shields.io/badge/php-8.1%2B-777bb4)
+![Licence](https://img.shields.io/badge/licence-MIT%20(Modified)-green)
+
 **Announcement management and front-page meeting display for the Unity intergroup suite.**
 
 Trumpet adds an *Announcements* custom post type to WordPress, with an admin interface for creating, scheduling, and managing announcements. It also provides a `[todays_meetings]` shortcode that renders today's meetings on the front page. Trumpet hooks into Unity's container for meeting data and uses Scrutiny's audit tracking for change detection.
 
-**Version:** 2.5.4
-**Requires:** WordPress 6.0+ · PHP 8.1+
 **Dependencies:** Unity
 **License:** MIT (Modified — see [License](#license))
 **Author:** [The Bleeding Deacons](mailto:thebleedingdeacons@gmail.com)
