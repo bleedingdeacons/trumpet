@@ -1,0 +1,61 @@
+parameters:
+	ignoreErrors:
+		-
+			message: "#^Function get_field not found\\.$#"
+			count: 8
+			path: src/Trumpet/Admin/TrumpetAdmin.php
+
+		-
+			message: "#^Property Trumpet\\\\Admin\\\\TrumpetAdmin\\:\\:\\$repository is never read, only written\\.$#"
+			count: 1
+			path: src/Trumpet/Admin/TrumpetAdmin.php
+
+		-
+			message: "#^Function get_field not found\\.$#"
+			count: 8
+			path: src/Trumpet/Announcement/Announcement.php
+
+		-
+			message: "#^Constant TRUMPET_PLUGIN_URL not found\\.$#"
+			count: 1
+			path: src/Trumpet/Announcement/AnnouncementManager.php
+
+		-
+			message: "#^Constant TRUMPET_VERSION not found\\.$#"
+			count: 1
+			path: src/Trumpet/Announcement/AnnouncementManager.php
+
+		-
+			message: "#^Method Trumpet\\\\Announcement\\\\AnnouncementManager\\:\\:logError\\(\\) is unused\\.$#"
+			count: 1
+			path: src/Trumpet/Announcement/AnnouncementManager.php
+
+		-
+			message: "#^Parameter \\#1 \\$text of function esc_attr expects string, int given\\.$#"
+			count: 2
+			path: src/Trumpet/Announcement/AnnouncementManager.php
+
+		-
+			message: "#^Function update_field not found\\.$#"
+			count: 8
+			path: src/Trumpet/Announcement/AnnouncementRepository.php
+
+		-
+			message: "#^If condition is always true\\.$#"
+			count: 1
+			path: src/Trumpet/Announcement/AnnouncementRepository.php
+
+		-
+			message: "#^Anonymous function has an unused use \\$submenu\\.$#"
+			count: 1
+			path: src/Trumpet/Plugin.php
+
+		-
+			message: "#^Constant TRUMPET_PLUGIN_FILE not found\\.$#"
+			count: 3
+			path: src/Trumpet/Plugin.php
+
+		-
+			message: "#^Undefined variable\\: \\$submenu$#"
+			count: 1
+			path: src/Trumpet/Plugin.php
