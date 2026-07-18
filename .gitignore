@@ -1,3 +1,4 @@
+/vendor/
 /vendor/bin/php-parse
 /vendor/bin/php-parse.bat
 /vendor/bin/phpcbf
