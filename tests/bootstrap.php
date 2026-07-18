@@ -101,6 +101,95 @@ if (!function_exists('sanitize_text_field')) {
     }
 }
 
+// ── Enough of WordPress to drive AnnouncementManager::renderSingleAnnouncement ──
+// These exist so the map render gate can be tested against real output rather
+// than inferred. Escaping is not modelled; no test asserts on it.
+
+if (!function_exists('add_shortcode')) {
+    // AnnouncementManager registers its shortcodes and hooks in the
+    // constructor, so these have to exist before one can be built at all.
+    function add_shortcode(string $tag, callable $callback): void
+    {
+    }
+}
+
+if (!function_exists('add_action')) {
+    function add_action(string $hook, callable $callback, int $priority = 10, int $acceptedArgs = 1): bool
+    {
+        return true;
+    }
+}
+
+if (!function_exists('get_post_timestamp')) {
+    function get_post_timestamp(mixed $post = null, string $field = 'date'): int|false
+    {
+        return 1_767_225_600; // 2026-01-01 00:00:00 UTC, fixed so output is stable
+    }
+}
+
+if (!function_exists('esc_html')) {
+    function esc_html(mixed $text): string
+    {
+        return is_string($text) ? htmlspecialchars($text, ENT_QUOTES) : '';
+    }
+}
+
+if (!function_exists('esc_attr')) {
+    function esc_attr(mixed $text): string
+    {
+        return htmlspecialchars((string) $text, ENT_QUOTES);
+    }
+}
+
+if (!function_exists('esc_url')) {
+    function esc_url(mixed $url): string
+    {
+        return is_string($url) ? $url : '';
+    }
+}
+
+if (!function_exists('current_user_can')) {
+    function current_user_can(string $capability, mixed ...$args): bool
+    {
+        return false;
+    }
+}
+
+if (!function_exists('get_edit_post_link')) {
+    function get_edit_post_link(mixed $post = null, string $context = 'display'): ?string
+    {
+        return null;
+    }
+}
+
+if (!function_exists('get_post_thumbnail_id')) {
+    function get_post_thumbnail_id(mixed $post = null): int
+    {
+        return 0;
+    }
+}
+
+if (!function_exists('wp_get_attachment_image_src')) {
+    function wp_get_attachment_image_src(int $id, mixed $size = 'thumbnail'): array|false
+    {
+        return false;
+    }
+}
+
+if (!function_exists('do_shortcode')) {
+    function do_shortcode(string $content, bool $ignoreHtml = false): string
+    {
+        return $content;
+    }
+}
+
+if (!function_exists('apply_filters')) {
+    function apply_filters(string $hook, mixed $value, mixed ...$args): mixed
+    {
+        return $value;
+    }
+}
+
 if (!function_exists('wp_kses')) {
     /**
      * Not the real implementation — see the file docblock. Passes content
