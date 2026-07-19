@@ -72,9 +72,9 @@
         "phpcs:fix": [
             "phpcbf --standard=PSR12 src"
         ],
-        "phpstan": "phpstan analyse",
+        "phpstan": "phpstan analyse --memory-limit=1G",
         "phpstan:baseline": [
-            "phpstan analyse src --level=5 --generate-baseline"
+            "phpstan analyse --memory-limit=1G src --level=5 --generate-baseline"
         ],
         "ci": [
             "@phpcs",
