@@ -10,8 +10,6 @@ if (!defined('ABSPATH')) {
 }
 
 use DateTime;
-use Exception;
-use InvalidArgumentException;
 use WP_Post;
 use Trumpet\Config\TrumpetConfig;
 
@@ -36,14 +34,9 @@ class Announcement
      * Constructor: Initialize properties from a WordPress post.
      *
      * @param WP_Post $post WordPress post object
-     * @throws InvalidArgumentException If post is invalid
      */
     public function __construct(WP_Post $post)
     {
-        if (!$post instanceof WP_Post) {
-            throw new InvalidArgumentException('Expected WP_Post instance');
-        }
-
         $this->id = $post->ID;
         $this->publicationStatus = $post->post_status;
         $this->initializeFields($post);
@@ -151,13 +144,11 @@ class Announcement
             return null;
         }
 
-        try {
-            $date = DateTime::createFromFormat('d/m/Y', $dateString);
-            return $date ?: null;
-        } catch (Exception $e) {
-            \Trumpet\Plugin::logError('Date parsing error: ' . $e->getMessage(), ['exception' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
-            return null;
-        }
+        // DateTime::createFromFormat() returns false on failure rather than
+        // throwing, so there is nothing to catch.
+        $date = DateTime::createFromFormat('d/m/Y', $dateString);
+
+        return $date ?: null;
     }
 
     /**
