@@ -74,7 +74,7 @@
         ],
         "phpstan": "phpstan analyse --memory-limit=1G",
         "phpstan:baseline": [
-            "phpstan analyse --memory-limit=1G src --level=5 --generate-baseline"
+            "phpstan analyse --memory-limit=1G --generate-baseline"
         ],
         "ci": [
             "@phpcs",
