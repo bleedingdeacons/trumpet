@@ -179,6 +179,28 @@ You can override the version number with `--version=X.X` and add `--clean` to wi
 
 ---
 
+## Testing
+
+Install the dev dependencies and run the suite from the plugin directory:
+
+```bash
+composer install
+```
+
+| Command | Description |
+|---|---|
+| `composer test` | Run the PHPUnit test suite |
+| `composer test:coverage` | Generate an HTML coverage report |
+| `composer phpcs` | Check WordPress coding standards |
+| `composer phpstan` | Run PHPStan static analysis |
+
+PHPStan is scanned against Unity and Sentinel checked out alongside; the CI
+workflow checks them out automatically. Line coverage is reported to
+[Coveralls](https://coveralls.io/github/bleedingdeacons/trumpet?branch=main)
+on every CI run — see the coverage badge at the top of this file.
+
+---
+
 ## License
 
 MIT License (Modified) — Copyright © 2025 The Bleeding Deacons.
