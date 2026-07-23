@@ -3630,3 +3630,6 @@
 /vendor/theseer/tokenizer/README.md
 /vendor/autoload.php
 /build/
+
+# JetBrains IDE files
+.idea/
