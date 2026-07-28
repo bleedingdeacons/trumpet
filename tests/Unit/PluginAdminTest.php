@@ -60,21 +60,10 @@ class PluginAdminTest extends TestCase
     /** @test */
     public function register_trumpet_menu_wires_the_pages_and_submenus(): void
     {
-        // registerTrumpetMenu() defines an admin_head closure with
-        // `use ($submenu)` where $submenu is undefined in scope — a known
-        // production defect that emits an "Undefined variable" warning at
-        // closure-creation time. The add_menu_page/add_submenu_page/add_action
-        // stubs are no-ops, so the pages are only registered, never rendered.
-        // Swallow that one warning so the wiring itself can be exercised.
-        set_error_handler(
-            static fn (): bool => true,
-            E_WARNING | E_NOTICE
-        );
-        try {
-            Plugin::registerTrumpetMenu();
-        } finally {
-            restore_error_handler();
-        }
+        // The add_menu_page/add_submenu_page/add_action stubs are no-ops, so
+        // the pages are only registered, never rendered. Exercising the wiring
+        // must complete without emitting any warnings.
+        Plugin::registerTrumpetMenu();
 
         $this->assertTrue(true);
     }
