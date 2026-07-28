@@ -212,7 +212,7 @@ class Plugin
         );
 
         // Make the Help link open in a new tab and redirect to the HTML file
-        add_action('admin_head', function() use ($submenu) {
+        add_action('admin_head', function() {
             $plugin_url = plugin_dir_url(TRUMPET_PLUGIN_FILE);
             ?>
             <script type="text/javascript">
