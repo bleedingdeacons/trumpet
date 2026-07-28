@@ -27,5 +27,22 @@
         <include>
             <directory suffix=".php">src</directory>
         </include>
+        <exclude>
+            <!--
+                Admin screens are WordPress render/callback glue (metaboxes,
+                settings fields, list-table columns) exercised through
+                WordPress at runtime rather than in unit tests, so they are
+                excluded from the coverage denominator — the same call Reach
+                and Integrity make for their own src/Admin.
+            -->
+            <directory suffix=".php">src/Trumpet/Admin</directory>
+            <!--
+                Interface files carry no executable behaviour beyond the
+                `if (!defined('ABSPATH')) exit;` guard, so there is nothing to
+                unit-test in them.
+            -->
+            <file>src/Trumpet/Common/CacheInterface.php</file>
+            <file>src/Trumpet/Announcement/AnnouncementRepositoryInterface.php</file>
+        </exclude>
     </coverage>
 </phpunit>
