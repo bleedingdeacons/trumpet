@@ -51,7 +51,7 @@ class AnnouncementManager
      * scrolled the list into view (e.g. "3 New Announcements"), counting down
      * as they are scrolled to and reverting once none are left.
      *
-     * @param array  $atts    Shortcode attributes
+     * @param array<string, mixed>  $atts    Shortcode attributes
      * @param string $content Shortcode content
      * @return string
      */
@@ -85,7 +85,7 @@ class AnnouncementManager
     /**
      * Get all announcements
      *
-     * @return array
+     * @return array<int, Announcement>
      */
     public function getAnnouncements(): array
     {
@@ -99,7 +99,7 @@ class AnnouncementManager
     /**
      * Generate announcements list HTML
      *
-     * @param array $atts Shortcode attributes
+     * @param array<string, mixed> $atts Shortcode attributes
      * @param string $content Shortcode content
      * @return string
      */
@@ -244,7 +244,7 @@ class AnnouncementManager
     /**
      * Render map
      *
-     * @param array $location Location data
+     * @param array<string, mixed> $location Location data
      * @return string
      */
     private function renderMap(array $location): string
@@ -263,7 +263,7 @@ class AnnouncementManager
     /**
      * Render related meetings
      *
-     * @param array $list List of meeting IDs
+     * @param array<int, mixed> $list List of meeting IDs
      * @return string
      */
     private function renderRelatedMeetings(array $list): string
