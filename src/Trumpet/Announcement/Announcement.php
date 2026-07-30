@@ -20,8 +20,10 @@ class Announcement
 {
     private int $id;
     private string $title;
+    /** @var array<int, mixed>|null Meeting IDs from the ACF relationship field. */
     private ?array $relatedMeeting;
     private bool $showMap;
+    /** @var array<string, mixed> Payload of the ACF map field. */
     private array $location;
     private ?DateTime $endDate;
     private string $body;
@@ -112,8 +114,8 @@ class Announcement
     /**
      * Sanitizes location data
      *
-     * @param array $location Location data
-     * @return array Sanitized location
+     * @param array<string, mixed> $location Location data
+     * @return array<string, mixed> Sanitized location
      */
     private static function sanitizeLocation(array $location): array
     {
@@ -400,7 +402,7 @@ class Announcement
     /**
      * Get the related meeting
      *
-     * @return array|null
+     * @return array<int, mixed>|null
      */
     public function getRelatedMeeting(): ?array
     {
@@ -420,7 +422,7 @@ class Announcement
     /**
      * Get the location data
      *
-     * @return array
+     * @return array<string, mixed>
      */
     public function getLocation(): array
     {

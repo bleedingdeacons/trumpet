@@ -16,7 +16,9 @@ use RuntimeException;
  */
 class DependencyContainer
 {
+    /** @var array<string, mixed> */
     private array $services = [];
+    /** @var array<string, callable> */
     private array $factories = [];
 
     /**

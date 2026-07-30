@@ -144,7 +144,7 @@ class TrumpetSettings
     /**
      * Get uninstall settings
      *
-     * @return array
+     * @return array<string, mixed>
      */
     public static function getUninstallSettings(): array
     {

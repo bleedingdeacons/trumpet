@@ -75,9 +75,9 @@ class TrumpetAdmin
     /**
      * Disable Quick Edit on admin table
      *
-     * @param array $actions Row actions
+     * @param array<string, string> $actions Row actions
      * @param WP_Post $post Post object
-     * @return array Modified actions
+     * @return array<string, string> Modified actions
      */
     public function removeQuickEdit(array $actions, WP_Post $post): array
     {
@@ -111,8 +111,8 @@ class TrumpetAdmin
     /**
      * Add custom columns to the admin list
      *
-     * @param array $columns Existing columns
-     * @return array Modified columns
+     * @param array<string, string> $columns Existing columns
+     * @return array<string, string> Modified columns
      */
     public static function addCustomColumns(array $columns): array
     {
@@ -256,8 +256,8 @@ class TrumpetAdmin
     /**
      * Make custom columns sortable
      *
-     * @param array $columns Existing sortable columns
-     * @return array Modified sortable columns
+     * @param array<string, mixed> $columns Existing sortable columns
+     * @return array<string, mixed> Modified sortable columns
      */
     public function sortableCustomColumns(array $columns): array
     {
