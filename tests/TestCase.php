@@ -4,7 +4,8 @@ declare(strict_types=1);
 
 namespace Tests;
 
-use PHPUnit\Framework\TestCase as PHPUnitTestCase;
+use BleedingDeacons\WpMocks\TestCase as WpMocksTestCase;
+use BleedingDeacons\WpMocks\WpState;
 use Trumpet\Announcement\Announcement;
 use Trumpet\Config\TrumpetConfig;
 use WP_Post;
@@ -12,11 +13,11 @@ use WP_Post;
 /**
  * Base TestCase.
  *
- * Owns the global stub state defined in bootstrap.php so it cannot leak
- * between tests, and provides a builder for the WP_Post + ACF field
- * combination an Announcement is constructed from.
+ * Extends the shared wp-mocks base — Brain Monkey lifecycle, Mockery
+ * integration, and a WpState reset between tests — and adds a builder for the
+ * WP_Post + ACF field combination an Announcement is constructed from.
  */
-abstract class TestCase extends PHPUnitTestCase
+abstract class TestCase extends WpMocksTestCase
 {
     protected const POST_ID = 101;
 
@@ -24,16 +25,15 @@ abstract class TestCase extends PHPUnitTestCase
     {
         parent::setUp();
 
-        $GLOBALS['trumpet_test_fields'] = [];
-        $GLOBALS['trumpet_test_post_times'] = [];
-    }
-
-    protected function tearDown(): void
-    {
-        $GLOBALS['trumpet_test_fields'] = [];
-        $GLOBALS['trumpet_test_post_times'] = [];
-
-        parent::tearDown();
+        // parent::setUp() clears WpState, so the ACF fields start empty.
+        //
+        // "Now" is pinned to the start of 2026 because the announcement
+        // renderer reads the post date through get_the_time()/get_post_timestamp(),
+        // both of which derive from WpState::$now. The old local stubs returned
+        // 01/01/2026 and the matching timestamp outright; keeping the same
+        // instant keeps the rendered output — and the tests asserting on it —
+        // unchanged. WpState::reset() puts $now back, so it is set per test.
+        WpState::$now = '2026-01-01 00:00:00';
     }
 
     /**
@@ -43,7 +43,20 @@ abstract class TestCase extends PHPUnitTestCase
      */
     protected function setFields(array $fields, int $postId = self::POST_ID): void
     {
-        $GLOBALS['trumpet_test_fields'][$postId] = $fields;
+        // Replaces rather than merges, which is what the old
+        // $GLOBALS['trumpet_test_fields'][$postId] = $fields did. A test that
+        // builds two announcements at the same id — one populated, one empty —
+        // depends on the second genuinely having no fields.
+        $prefix = $postId . '|';
+        foreach (array_keys(WpState::$fields) as $key) {
+            if (str_starts_with((string) $key, $prefix)) {
+                unset(WpState::$fields[$key]);
+            }
+        }
+
+        foreach ($fields as $selector => $value) {
+            update_field($selector, $value, $postId);
+        }
     }
 
     /**

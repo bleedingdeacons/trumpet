@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Announcement;
 
+use Brain\Monkey\Functions;
 use Mockery;
-use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
-use PHPUnit\Framework\TestCase;
+use Tests\TestCase;
 use ReflectionClass;
 use RuntimeException;
 use Trumpet\Announcement\Announcement;
@@ -24,8 +24,6 @@ use WP_Post;
  */
 class AnnouncementChangeTrackerTest extends TestCase
 {
-    use MockeryPHPUnitIntegration;
-
     /** @var AnnouncementRepositoryInterface&\Mockery\MockInterface */
     private $repo;
     private AnnouncementChangeTracker $tracker;
@@ -34,7 +32,6 @@ class AnnouncementChangeTrackerTest extends TestCase
     {
         parent::setUp();
         $this->resetOriginal();
-        unset($GLOBALS['trumpet_test_post_type'], $GLOBALS['trumpet_test_get_post']);
         $this->repo = Mockery::mock(AnnouncementRepositoryInterface::class);
         $this->tracker = new AnnouncementChangeTracker($this->repo);
     }
@@ -69,7 +66,7 @@ class AnnouncementChangeTrackerTest extends TestCase
     /** @test */
     public function capture_ignores_a_non_announcement_post(): void
     {
-        $GLOBALS['trumpet_test_post_type'] = 'page';
+        Functions\when('get_post_type')->justReturn('page');
         $this->tracker->captureOriginalAnnouncement(1);
         $this->assertNull($this->original());
     }
@@ -77,7 +74,7 @@ class AnnouncementChangeTrackerTest extends TestCase
     /** @test */
     public function capture_stores_the_snapshot_for_an_announcement(): void
     {
-        $GLOBALS['trumpet_test_post_type'] = TrumpetConfig::ANNOUNCEMENT_POST_TYPE;
+        Functions\when('get_post_type')->justReturn(TrumpetConfig::ANNOUNCEMENT_POST_TYPE);
         $snapshot = $this->announcement('Before');
         $this->repo->shouldReceive('findById')->with(5)->andReturn($snapshot);
 
@@ -88,7 +85,7 @@ class AnnouncementChangeTrackerTest extends TestCase
     /** @test */
     public function capture_swallows_a_repository_error(): void
     {
-        $GLOBALS['trumpet_test_post_type'] = TrumpetConfig::ANNOUNCEMENT_POST_TYPE;
+        Functions\when('get_post_type')->justReturn(TrumpetConfig::ANNOUNCEMENT_POST_TYPE);
         $this->repo->shouldReceive('findById')->andThrow(new RuntimeException('boom'));
 
         $this->tracker->captureOriginalAnnouncement(5);
@@ -100,7 +97,7 @@ class AnnouncementChangeTrackerTest extends TestCase
     /** @test */
     public function check_ignores_a_non_announcement_post(): void
     {
-        $GLOBALS['trumpet_test_post_type'] = 'page';
+        Functions\when('get_post_type')->justReturn('page');
         $this->tracker->checkForChanges(1);
         $this->assertTrue(true);
     }
@@ -108,7 +105,7 @@ class AnnouncementChangeTrackerTest extends TestCase
     /** @test */
     public function check_returns_early_when_no_snapshot_was_captured(): void
     {
-        $GLOBALS['trumpet_test_post_type'] = TrumpetConfig::ANNOUNCEMENT_POST_TYPE;
+        Functions\when('get_post_type')->justReturn(TrumpetConfig::ANNOUNCEMENT_POST_TYPE);
         $this->tracker->checkForChanges(5);
         $this->assertTrue(true);
     }
@@ -116,7 +113,7 @@ class AnnouncementChangeTrackerTest extends TestCase
     /** @test */
     public function check_returns_when_the_updated_announcement_cannot_be_fetched(): void
     {
-        $GLOBALS['trumpet_test_post_type'] = TrumpetConfig::ANNOUNCEMENT_POST_TYPE;
+        Functions\when('get_post_type')->justReturn(TrumpetConfig::ANNOUNCEMENT_POST_TYPE);
         $this->seedOriginal($this->announcement('Before'));
         $this->repo->shouldReceive('findById')->with(5)->andReturn(null);
 
@@ -128,7 +125,7 @@ class AnnouncementChangeTrackerTest extends TestCase
     /** @test */
     public function check_fires_the_changed_hook_and_syncs_the_title(): void
     {
-        $GLOBALS['trumpet_test_post_type'] = TrumpetConfig::ANNOUNCEMENT_POST_TYPE;
+        Functions\when('get_post_type')->justReturn(TrumpetConfig::ANNOUNCEMENT_POST_TYPE);
         $this->seedOriginal($this->announcement('Before'));
 
         $updated = $this->announcement('After');
@@ -136,7 +133,6 @@ class AnnouncementChangeTrackerTest extends TestCase
         $this->repo->shouldReceive('hasAnnouncementChanged')->andReturn(true);
 
         $post = new WP_Post(['ID' => 5, 'post_title' => 'Before']);
-        $GLOBALS['trumpet_test_get_post'] = $post;
 
         $this->tracker->checkForChanges(5);
         $this->assertNull($this->original());
@@ -145,7 +141,7 @@ class AnnouncementChangeTrackerTest extends TestCase
     /** @test */
     public function check_clears_the_snapshot_when_nothing_changed(): void
     {
-        $GLOBALS['trumpet_test_post_type'] = TrumpetConfig::ANNOUNCEMENT_POST_TYPE;
+        Functions\when('get_post_type')->justReturn(TrumpetConfig::ANNOUNCEMENT_POST_TYPE);
         $this->seedOriginal($this->announcement('Before'));
 
         $this->repo->shouldReceive('findById')->with(5)->andReturn($this->announcement('Before'));

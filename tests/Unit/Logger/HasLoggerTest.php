@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Logger;
 
-use PHPUnit\Framework\TestCase;
+use Tests\TestCase;
 use Trumpet\Exception\AnnouncementException;
 use Trumpet\Logger\HasLogger;
 

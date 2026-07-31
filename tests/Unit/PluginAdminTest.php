@@ -5,8 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit;
 
 use Mockery;
-use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
-use PHPUnit\Framework\TestCase;
+use Tests\TestCase;
 use ReflectionClass;
 use Trumpet\Admin\TrumpetAdmin;
 use Trumpet\Admin\TrumpetSettings;
@@ -23,8 +22,6 @@ use Unity\Meetings\Interfaces\MeetingRepository;
  */
 class PluginAdminTest extends TestCase
 {
-    use MockeryPHPUnitIntegration;
-
     protected function setUp(): void
     {
         parent::setUp();

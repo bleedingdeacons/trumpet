@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Tests\Unit\Announcement;
 
 use Mockery;
-use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use ReflectionMethod;
 use Tests\TestCase;
 use Trumpet\Announcement\Announcement;
@@ -27,8 +26,6 @@ use Unity\Meetings\Interfaces\MeetingRepository;
  */
 class RenderedMapMarkupTest extends TestCase
 {
-    use MockeryPHPUnitIntegration;
-
     protected function setUp(): void
     {
         parent::setUp();

@@ -8,13 +8,20 @@
             "name": "The Bleeding Deacons"
         }
     ],
+    "repositories": [
+        {
+            "type": "vcs",
+            "url": "https://github.com/bleedingdeacons/wp-mocks"
+        }
+    ],
     "require": {
         "php": ">=8.1"
     },
     "require-dev": {
+        "bleedingdeacons/wp-mocks": "^1.2",
         "mockery/mockery": "^1.6",
         "phpstan/phpstan": "^2.0",
-        "phpunit/phpunit": "^9.6",
+        "phpunit/phpunit": "^10.5",
         "psr/container": "^2.0",
         "squizlabs/php_codesniffer": "^3.7",
         "szepeviktor/phpstan-wordpress": "^2.0"

@@ -5,8 +5,9 @@ declare(strict_types=1);
 namespace Tests\Unit;
 
 use Mockery;
-use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
-use PHPUnit\Framework\TestCase;
+use BleedingDeacons\WpMocks\WpState;
+use Brain\Monkey\Functions;
+use Tests\TestCase;
 use ReflectionClass;
 use RuntimeException;
 use Trumpet\Announcement\AnnouncementChangeTracker;
@@ -27,15 +28,13 @@ use Unity\Meetings\Interfaces\MeetingRepository;
  */
 class PluginWiringTest extends TestCase
 {
-    use MockeryPHPUnitIntegration;
-
     protected function setUp(): void
     {
         parent::setUp();
         $this->resetStatics();
-        $GLOBALS['trumpet_test_is_admin'] = false;
-        $GLOBALS['trumpet_test_cron'] = [];
-        $GLOBALS['trumpet_test_roles'] = [];
+        // parent::setUp() clears WpState, including the cron schedule;
+        // is_admin() defaults to true there, and these tests want it off.
+        WpState::$isAdmin = false;
     }
 
     protected function tearDown(): void
@@ -93,11 +92,14 @@ class PluginWiringTest extends TestCase
         (new ReflectionClass(Plugin::class))->getProperty('container')->setValue(null, $container);
 
         // A scheduled event to unschedule, and a role whose caps get stripped.
-        $GLOBALS['trumpet_test_cron']['announcement_cleanup_task'] = 12345;
+        WpState::$cron['announcement_cleanup_task'] = 12345;
+
+        // wp-mocks' get_role() hands back a plain object describing the role;
+        // this test needs one that records remove_cap(), so it is overridden
+        // for the duration of the test.
         $role = Mockery::mock();
         $role->shouldReceive('remove_cap')->atLeast()->once();
-        $GLOBALS['trumpet_test_roles']['administrator'] = $role;
-        $GLOBALS['trumpet_test_roles']['editor'] = $role;
+        Functions\when('get_role')->justReturn($role);
 
         // $wpdb: report the table exists so the DROP path runs.
         $wpdb = Mockery::mock('wpdb');
