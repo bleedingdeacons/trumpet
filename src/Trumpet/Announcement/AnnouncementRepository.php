@@ -113,12 +113,10 @@ class AnnouncementRepository implements AnnouncementRepositoryInterface
 
         $this->cache->delete(TrumpetConfig::ANNOUNCEMENTS_CACHE_KEY);
 
-        if (defined('WP_DEBUG') && WP_DEBUG) {
-            \Trumpet\Plugin::logError(sprintf(
-                'Announcement cache cleared due to update on post ID: %s',
-                $post_id ?? 'unknown'
-            ));
-        }
+        \Trumpet\Plugin::logDebug(sprintf(
+            'Announcement cache cleared due to update on post ID: %s',
+            $post_id ?? 'unknown'
+        ));
     }
 
     /**

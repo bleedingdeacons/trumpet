@@ -58,9 +58,7 @@ class AnnouncementChangeTracker
         try {
             self::$originalAnnouncement = $this->repository->findById($post_id);
 
-            if (defined('WP_DEBUG') && WP_DEBUG) {
-                \Trumpet\Plugin::logError('Original announcement captured for post ID: ' . $post_id);
-            }
+            \Trumpet\Plugin::logDebug('Original announcement captured for post ID: ' . $post_id);
         } catch (Exception $e) {
             \Trumpet\Plugin::logError('Error capturing original announcement: ' . $e->getMessage(), ['exception' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
         }
@@ -78,9 +76,7 @@ class AnnouncementChangeTracker
         }
 
         if (!self::$originalAnnouncement) {
-            if (defined('WP_DEBUG') && WP_DEBUG) {
-                \Trumpet\Plugin::logError('No original announcement captured for comparison, post ID: ' . $post_id);
-            }
+            \Trumpet\Plugin::logDebug('No original announcement captured for comparison, post ID: ' . $post_id);
             return;
         }
 
@@ -93,9 +89,7 @@ class AnnouncementChangeTracker
             }
 
             if ($this->repository->hasAnnouncementChanged(self::$originalAnnouncement, $updatedAnnouncement)) {
-                if (defined('WP_DEBUG') && WP_DEBUG) {
-                    \Trumpet\Plugin::logError('Changes detected in announcement ID: ' . $post_id . ', firing announcement_changed hook');
-                }
+                \Trumpet\Plugin::logDebug('Changes detected in announcement ID: ' . $post_id . ', firing announcement_changed hook');
 
                 $post = get_post($post_id);
                 if ($post && $post->post_title !== $updatedAnnouncement->getTitle()) {
@@ -107,9 +101,7 @@ class AnnouncementChangeTracker
 
                 do_action('announcement_changed', $updatedAnnouncement, self::$originalAnnouncement);
             } else {
-                if (defined('WP_DEBUG') && WP_DEBUG) {
-                    \Trumpet\Plugin::logError('No changes detected in announcement ID: ' . $post_id);
-                }
+                \Trumpet\Plugin::logDebug('No changes detected in announcement ID: ' . $post_id);
             }
 
             self::$originalAnnouncement = null;
