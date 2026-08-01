@@ -4,24 +4,26 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Logger;
 
+use BleedingDeacons\WpMocks\WpState;
 use Tests\TestCase;
 use Trumpet\Exception\AnnouncementException;
 use Trumpet\Logger\HasLogger;
 
 /**
- * The HasLogger trait resolves the shared Sentinel logger via wp_log() and
- * degrades to a no-op when it is unavailable. A host class drives every level
- * forwarder. AnnouncementException's constructor logs through the same trait
- * (on Plugin), so it is covered here too.
+ * The HasLogger trait resolves the shared Sentinel logger via wp_log(). A host
+ * class that does not override logChannel() drives the default derivation and
+ * every level forwarder; wp-mocks' `sentinel` group supplies the channel, so
+ * what each forwarder emits is assertable. AnnouncementException's constructor
+ * logs through the same trait (on Plugin), so it is covered here too.
  *
  * @covers \Trumpet\Logger\HasLogger
  * @covers \Trumpet\Exception\AnnouncementException
  */
 class HasLoggerTest extends TestCase
 {
-    public function testEveryLevelForwarderIsASafeNoopWithoutAChannel(): void
+    public function testEveryLevelForwarderReachesTheChannel(): void
     {
-        $this->assertNull(TrumpetLoggerHost::log());
+        $this->assertNotNull(TrumpetLoggerHost::log());
 
         TrumpetLoggerHost::logEmergency('m', ['k' => 'v']);
         TrumpetLoggerHost::logAlert('m');
@@ -32,7 +34,15 @@ class HasLoggerTest extends TestCase
         TrumpetLoggerHost::logInfo('m');
         TrumpetLoggerHost::logDebug('m');
 
-        $this->assertTrue(true);
+        $levels = array_column(
+            array_filter(WpState::$logs, static fn (array $l): bool => $l[0] === 'trumpetloggerhost'),
+            1
+        );
+
+        $this->assertSame(
+            ['emergency', 'alert', 'critical', 'error', 'warning', 'notice', 'info', 'debug'],
+            $levels
+        );
     }
 
     public function testAnnouncementExceptionCarriesMessageCodeAndPrevious(): void

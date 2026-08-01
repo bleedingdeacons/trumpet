@@ -8,9 +8,11 @@
  * anything below that defines WordPress functions or classes of its own must
  * stay after the Bootstrap::load() call, not before it.
  *
- * Trumpet uses ACF for its announcement fields, so that group is loaded too.
- * The `sentinel` group is not: Trumpet's HasLogger is written to no-op when
- * wp_log() is absent, and that is the branch these tests run.
+ * Trumpet uses ACF for its announcement fields, so that group is loaded too,
+ * and `sentinel` with it: HasLogger skips its whole resolution when wp_log()
+ * is absent, and the old bootstrap defined a null-returning wp_log() for
+ * exactly that reason. The shared stub does the same job and records what was
+ * logged into WpState::$logs, where a test can assert on it.
  *
  * A note the old hand-rolled stubs carried, still true of the shared ones:
  * they are not faithful reimplementations. sanitize_text_field() and wp_kses()
@@ -25,7 +27,7 @@ use BleedingDeacons\WpMocks\WpState;
 
 require_once __DIR__ . '/../vendor/autoload.php';
 
-Bootstrap::load(['wordpress', 'acf']);
+Bootstrap::load(['wordpress', 'acf', 'sentinel']);
 
 // Makes plugins_url()/plugin_dir_url() answer with Trumpet's own path.
 WpState::$pluginSlug = 'trumpet';

@@ -44,6 +44,24 @@ class PluginWiringTest extends TestCase
         parent::tearDown();
     }
 
+    /**
+     * Plugin overrides the trait's default channel derivation. With a real
+     * wp_log() the resolution memoises in a static that nothing resets between
+     * tests, so whichever call logs first does the resolving — clear it here
+     * so the override actually runs where it is being asserted on.
+     *
+     * @test
+     */
+    public function it_logs_through_its_own_channel(): void
+    {
+        (new ReflectionClass(Plugin::class))->getProperty('loggerChannel')->setValue(null, null);
+
+        $channel = Plugin::log();
+
+        $this->assertNotNull($channel);
+        $this->assertSame('trumpet', $channel->channel);
+    }
+
     private function container(): TrumpetFakeContainer
     {
         return new TrumpetFakeContainer([

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Announcement;
 
+use BleedingDeacons\WpMocks\WpState;
 use Brain\Monkey\Functions;
 use Mockery;
 use Tests\TestCase;
@@ -132,10 +133,14 @@ class AnnouncementChangeTrackerTest extends TestCase
         $this->repo->shouldReceive('findById')->with(5)->andReturn($updated);
         $this->repo->shouldReceive('hasAnnouncementChanged')->andReturn(true);
 
-        $post = new WP_Post(['ID' => 5, 'post_title' => 'Before']);
+        // The post has to exist and still carry the old title: that is what
+        // sends checkForChanges() down its wp_update_post() branch.
+        WpState::$posts[5] = new WP_Post(['ID' => 5, 'post_title' => 'Before']);
 
         $this->tracker->checkForChanges(5);
+
         $this->assertNull($this->original());
+        $this->assertSame('After', WpState::$updatedPosts[0]['post_title'] ?? null);
     }
 
     /** @test */
