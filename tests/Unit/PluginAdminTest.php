@@ -12,6 +12,7 @@ use Trumpet\Admin\TrumpetSettings;
 use Trumpet\Plugin;
 use Unity\Core\Interfaces\Cache;
 use Unity\Meetings\Interfaces\MeetingRepository;
+use Unity\Testing\Doubles\FakeContainer;
 
 /**
  * Covers the admin-context paths of the Plugin bootstrap: the is_admin() branch
@@ -42,7 +43,7 @@ class PluginAdminTest extends TestCase
     {
         // Preseed the admin services so init() resolves them without invoking
         // their real (hook-registering) constructors.
-        $container = new TrumpetFakeContainer([
+        $container = new FakeContainer([
             Cache::class => Mockery::mock(Cache::class)->shouldIgnoreMissing(),
             MeetingRepository::class => Mockery::mock(MeetingRepository::class),
             TrumpetAdmin::class => Mockery::mock(TrumpetAdmin::class),

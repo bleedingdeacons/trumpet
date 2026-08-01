@@ -49,20 +49,26 @@ if (!defined('TRUMPET_PLUGIN_URL')) {
 
 // ── Unity sibling autoloader ────────────────────────────────────────
 // Trumpet builds on Unity's interfaces (Container, Cache, MeetingRepository,
-// …). CI checks Unity out as a sibling; load its real interfaces from there so
-// the container-wiring tests resolve the same contracts WordPress loads.
+// …) and on the test doubles Unity ships at Unity\Testing\Doubles. CI checks
+// Unity out as a sibling; load both from there so the container-wiring tests
+// resolve the same contracts WordPress loads.
 $trumpetUnitySrc = dirname(__DIR__, 2) . '/unity/src';
-if (is_dir($trumpetUnitySrc)) {
-    spl_autoload_register(static function (string $class) use ($trumpetUnitySrc): void {
-        if (!str_starts_with($class, 'Unity\\')) {
-            return;
-        }
-        $file = $trumpetUnitySrc . '/' . str_replace('\\', '/', substr($class, strlen('Unity\\'))) . '.php';
-        if (is_file($file)) {
-            require_once $file;
-        }
-    });
+if (!is_dir($trumpetUnitySrc)) {
+    fwrite(STDERR, PHP_EOL . 'ERROR: Unity plugin source not found at ' . $trumpetUnitySrc . PHP_EOL
+        . "Trumpet is built on Unity's interfaces and test doubles, so the Unity" . PHP_EOL
+        . 'plugin must be checked out as a sibling directory for this suite to run.' . PHP_EOL . PHP_EOL);
+    exit(1);
 }
+
+spl_autoload_register(static function (string $class) use ($trumpetUnitySrc): void {
+    if (!str_starts_with($class, 'Unity\\')) {
+        return;
+    }
+    $file = $trumpetUnitySrc . '/' . str_replace('\\', '/', substr($class, strlen('Unity\\'))) . '.php';
+    if (is_file($file)) {
+        require_once $file;
+    }
+});
 
 // renderSingleAnnouncement() calls $wp_embed->autoembed()/run_shortcode().
 // $wp_embed is a WordPress *global object*, not a function, so it is outside
