@@ -2,6 +2,13 @@
 /.phpunit.cache/
 .phpunit.result.cache
 
+# composer.lock, matching the rest of the suite. Trumpet and Reach were the
+# only two plugins tracking theirs; every other one ignores it, so CI resolves
+# dependencies from composer.json on each run. Keeping one plugin's lock
+# tracked pinned its dev tooling while the other sixteen floated, which is the
+# inconsistency this removes.
+composer.lock
+
 /vendor/
 /vendor/bin/php-parse
 /vendor/bin/php-parse.bat
