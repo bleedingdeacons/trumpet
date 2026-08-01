@@ -17,6 +17,7 @@ use Trumpet\Plugin;
 use Unity\Core\Interfaces\Cache;
 use Unity\Core\Interfaces\Container;
 use Unity\Meetings\Interfaces\MeetingRepository;
+use Unity\Testing\Doubles\FakeContainer;
 
 /**
  * Covers the Plugin bootstrap: registering Trumpet's services into Unity's
@@ -62,9 +63,9 @@ class PluginWiringTest extends TestCase
         $this->assertSame('trumpet', $channel->channel);
     }
 
-    private function container(): TrumpetFakeContainer
+    private function container(): FakeContainer
     {
-        return new TrumpetFakeContainer([
+        return new FakeContainer([
             Cache::class => Mockery::mock(Cache::class)->shouldIgnoreMissing(),
             MeetingRepository::class => Mockery::mock(MeetingRepository::class),
         ]);
@@ -106,7 +107,7 @@ class PluginWiringTest extends TestCase
         $cache->shouldReceive('delete')->once();
         $cache->shouldReceive('flush')->once();
 
-        $container = new TrumpetFakeContainer([Cache::class => $cache]);
+        $container = new FakeContainer([Cache::class => $cache]);
         (new ReflectionClass(Plugin::class))->getProperty('container')->setValue(null, $container);
 
         // A scheduled event to unschedule, and a role whose caps get stripped.
@@ -150,38 +151,3 @@ class PluginWiringTest extends TestCase
     }
 }
 
-/** Minimal Unity container: presets + registered factories, resolved once. */
-final class TrumpetFakeContainer implements Container
-{
-    /** @var array<string, callable> */
-    private array $factories = [];
-    /** @var array<string, mixed> */
-    private array $instances;
-
-    /** @param array<string, mixed> $presets */
-    public function __construct(array $presets = [])
-    {
-        $this->instances = $presets;
-    }
-
-    public function register(string $id, callable $factory): void
-    {
-        $this->factories[$id] = $factory;
-    }
-
-    public function get(string $id): mixed
-    {
-        if (array_key_exists($id, $this->instances)) {
-            return $this->instances[$id];
-        }
-        if (isset($this->factories[$id])) {
-            return $this->instances[$id] = ($this->factories[$id])($this);
-        }
-        throw new RuntimeException('No service registered for ' . $id);
-    }
-
-    public function has(string $id): bool
-    {
-        return isset($this->factories[$id]) || array_key_exists($id, $this->instances);
-    }
-}
