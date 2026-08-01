@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Announcement;
 
 use Mockery;
-use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
+use BleedingDeacons\WpMocks\WpState;
 use Tests\TestCase;
 use Trumpet\Announcement\AnnouncementManager;
 use Trumpet\Announcement\AnnouncementRepositoryInterface;
@@ -24,8 +24,6 @@ use Unity\Meetings\Interfaces\MeetingRepository;
  */
 class AnnouncementManagerTest extends TestCase
 {
-    use MockeryPHPUnitIntegration;
-
     /** @var AnnouncementRepositoryInterface&\Mockery\MockInterface */
     private $repo;
     /** @var MeetingRepository&\Mockery\MockInterface */
@@ -101,10 +99,10 @@ class AnnouncementManagerTest extends TestCase
     {
         // Admin editor → edit link; a thumbnail → featured image; an in-person
         // meeting → the face-to-face icon branch.
-        $GLOBALS['trumpet_test_user_can'] = true;
-        $GLOBALS['trumpet_test_edit_link'] = 'https://wp/edit/100';
-        $GLOBALS['trumpet_test_thumb_id'] = 55;
-        $GLOBALS['trumpet_test_image_src'] = ['https://wp/img.jpg', 640, 480];
+        // WpState::$userCan is true by default, which is the editor case.
+        // The featured image is keyed by the announcement's own post id.
+        WpState::$thumbnails[100] = 55;
+        WpState::$attachments[55] = ['https://wp/img.jpg', 640, 480, false];
 
         $meeting = Mockery::mock(Meeting::class);
         $meeting->shouldReceive('isOnline')->andReturn(false);
@@ -119,13 +117,6 @@ class AnnouncementManagerTest extends TestCase
         $this->assertStringContainsString('announcement-edit-link', $html);
         $this->assertStringContainsString('announcement-featured-image', $html);
         $this->assertStringContainsString('face2face', $html);
-
-        unset(
-            $GLOBALS['trumpet_test_user_can'],
-            $GLOBALS['trumpet_test_edit_link'],
-            $GLOBALS['trumpet_test_thumb_id'],
-            $GLOBALS['trumpet_test_image_src'],
-        );
     }
 
     /** @test */

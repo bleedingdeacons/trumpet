@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Announcement;
 
+use BleedingDeacons\WpMocks\WpState;
+use Brain\Monkey\Functions;
 use Tests\TestCase;
 use Trumpet\Announcement\Announcement;
 use Trumpet\Announcement\AnnouncementRepository;
@@ -25,15 +27,22 @@ class AnnouncementRepositoryTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $GLOBALS['trumpet_test_cache'] = [];
-        unset(
-            $GLOBALS['trumpet_test_get_posts'],
-            $GLOBALS['trumpet_test_get_post'],
-            $GLOBALS['trumpet_test_post_type'],
-            $GLOBALS['trumpet_test_insert_error'],
-            $GLOBALS['trumpet_test_update_error'],
-            $GLOBALS['trumpet_test_delete_result'],
-        );
+        // parent::setUp() clears WpState: the object cache, the seeded posts
+        // and everything get_post()/get_posts() read. Nothing to unset here.
+    }
+
+    /**
+     * Seed a post so get_post()/get_post_type() resolve it, and hand it back
+     * for the tests that also need the object itself.
+     */
+    private function seed(int $id, string $status = 'publish'): WP_Post
+    {
+        $post = $this->post($id, $status);
+        WpState::$posts[$id] = $post;
+        WpState::$postTypes[$id] = TrumpetConfig::ANNOUNCEMENT_POST_TYPE;
+        WpState::$postStatuses[$id] = $status;
+
+        return $post;
     }
 
     private function repo(): AnnouncementRepository
@@ -55,7 +64,7 @@ class AnnouncementRepositoryTest extends TestCase
     public function testFindAllQueriesThenServesFromCache(): void
     {
         $this->setFields([self::TITLE => 'Hello'], 10);
-        $GLOBALS['trumpet_test_get_posts'] = [$this->post(10)];
+        WpState::$queryPosts = [$this->seed(10)];
 
         $repo = $this->repo();
         $first = $repo->findAll();
@@ -63,7 +72,7 @@ class AnnouncementRepositoryTest extends TestCase
         $this->assertInstanceOf(Announcement::class, $first[0]);
 
         // Second call is served from the transient cache (get_posts emptied).
-        $GLOBALS['trumpet_test_get_posts'] = [];
+        WpState::$queryPosts = [];
         $second = $repo->findAll();
         $this->assertCount(1, $second);
     }
@@ -73,19 +82,19 @@ class AnnouncementRepositoryTest extends TestCase
     public function testFindByIdReturnsAnAnnouncement(): void
     {
         $this->setFields([self::TITLE => 'One'], 5);
-        $GLOBALS['trumpet_test_get_post'] = $this->post(5);
+        $this->seed(5);
 
         $this->assertInstanceOf(Announcement::class, $this->repo()->findById(5));
     }
 
     public function testFindByIdReturnsNullForMissingOrWrongType(): void
     {
-        $GLOBALS['trumpet_test_get_post'] = null;
+        // Nothing seeded, so get_post() answers null.
         $this->assertNull($this->repo()->findById(99));
 
-        $post = $this->post(6);
+        $post = $this->seed(6);
         $post->post_type = 'page';
-        $GLOBALS['trumpet_test_get_post'] = $post;
+        WpState::$postTypes[6] = 'page';
         $this->assertNull($this->repo()->findById(6));
     }
 
@@ -95,7 +104,7 @@ class AnnouncementRepositoryTest extends TestCase
     {
         $this->setFields([self::TITLE => 'Visible'], 1);
         $this->setFields([self::TITLE => 'Hidden', self::HIDE => true], 2);
-        $GLOBALS['trumpet_test_get_posts'] = [$this->post(1), $this->post(2)];
+        WpState::$queryPosts = [$this->seed(1), $this->seed(2)];
 
         $active = $this->repo()->findActive();
         $this->assertCount(1, $active);
@@ -106,7 +115,7 @@ class AnnouncementRepositoryTest extends TestCase
     public function testSavePersistsAndClearsCache(): void
     {
         $announcement = $this->makeAnnouncement([self::TITLE => 'New'], 'publish', 20);
-        $GLOBALS['trumpet_test_insert_id'] = 21;
+        WpState::$nextPostId = 21;
 
         $this->assertTrue($this->repo()->save($announcement));
     }
@@ -114,7 +123,9 @@ class AnnouncementRepositoryTest extends TestCase
     public function testSaveWrapsAWpErrorInAnAnnouncementException(): void
     {
         $announcement = $this->makeAnnouncement([self::TITLE => 'New'], 'publish', 20);
-        $GLOBALS['trumpet_test_insert_error'] = 'insert refused';
+        // wp-mocks' wp_insert_post() always succeeds, so the WP_Error branch
+        // is reached by overriding it for this test only.
+        Functions\when('wp_insert_post')->justReturn(new \WP_Error('insert_failed', 'insert refused'));
 
         $this->expectException(AnnouncementException::class);
         $this->repo()->save($announcement);
@@ -127,7 +138,7 @@ class AnnouncementRepositoryTest extends TestCase
         // findById inside update() reads get_post; return the same post so the
         // original loads, then the update proceeds.
         $this->setFields([self::TITLE => 'Updated'], 30);
-        $GLOBALS['trumpet_test_get_post'] = $this->post(30);
+        $this->seed(30);
         $announcement = $this->makeAnnouncement([self::TITLE => 'Updated'], 'publish', 30);
 
         $this->assertTrue($this->repo()->update($announcement));
@@ -135,7 +146,7 @@ class AnnouncementRepositoryTest extends TestCase
 
     public function testUpdateThrowsWhenTheOriginalIsMissing(): void
     {
-        $GLOBALS['trumpet_test_get_post'] = null;
+        // Nothing seeded, so get_post() answers null.
         $announcement = $this->makeAnnouncement([self::TITLE => 'X'], 'publish', 40);
 
         $this->expectException(AnnouncementException::class);
@@ -146,13 +157,14 @@ class AnnouncementRepositoryTest extends TestCase
 
     public function testDeleteSucceeds(): void
     {
-        $GLOBALS['trumpet_test_delete_result'] = true;
+        $this->seed(7);
         $this->assertTrue($this->repo()->delete(7));
     }
 
     public function testDeleteThrowsWhenWpDeleteFails(): void
     {
-        $GLOBALS['trumpet_test_delete_result'] = false;
+        // wp_delete_post() reports failure by returning false, which it does
+        // for a post that is not there — so simply do not seed one.
         $this->expectException(AnnouncementException::class);
         $this->repo()->delete(7);
     }
@@ -161,7 +173,7 @@ class AnnouncementRepositoryTest extends TestCase
 
     public function testClearCacheSkipsForANonAnnouncementPost(): void
     {
-        $GLOBALS['trumpet_test_post_type'] = 'page';
+        WpState::$postTypes[123] = 'page';
         // Should return early without touching the cache; simply must not error.
         $this->repo()->clearCache(123);
         $this->assertTrue(true);

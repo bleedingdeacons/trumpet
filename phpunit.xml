@@ -1,29 +1,29 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-    PHPUnit 9.6 schema — trumpet requires phpunit ^9.6. The 10.x layout
-    (<source>, cacheDirectory) does not validate here and its coverage
-    configuration is silently ignored, so keep this in step with composer.json
-    if PHPUnit is ever upgraded.
+    PHPUnit 10.5 schema. Coverage include/exclude therefore lives in <source>,
+    not the 9.x <coverage> element, and the convertErrorsToExceptions family is
+    gone — 10.x always converts. beStrictAboutTestsThatDoNotTestAnything goes
+    with them: it is the default in 10.x.
+
+    Trumpet sat on PHPUnit 9.6 after the rest of the suite moved to 10.5,
+    because it had no shared test package to move with. Adopting
+    bleedingdeacons/wp-mocks is what unblocked it.
 -->
 <phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
+         xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/10.5/phpunit.xsd"
          bootstrap="tests/bootstrap.php"
          colors="true"
          beStrictAboutOutputDuringTests="true"
-         beStrictAboutTestsThatDoNotTestAnything="true"
          failOnRisky="true"
          failOnWarning="true"
-         cacheResultFile=".phpunit.cache/test-results"
-         convertErrorsToExceptions="true"
-         convertNoticesToExceptions="true"
-         convertWarningsToExceptions="true">
+         cacheDirectory=".phpunit.cache">
     <testsuites>
         <testsuite name="Trumpet">
             <directory>tests</directory>
         </testsuite>
     </testsuites>
 
-    <coverage>
+    <source>
         <include>
             <directory suffix=".php">src</directory>
         </include>
@@ -44,5 +44,5 @@
             <file>src/Trumpet/Common/CacheInterface.php</file>
             <file>src/Trumpet/Announcement/AnnouncementRepositoryInterface.php</file>
         </exclude>
-    </coverage>
+    </source>
 </phpunit>

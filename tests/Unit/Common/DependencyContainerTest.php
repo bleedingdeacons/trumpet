@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Common;
 
-use PHPUnit\Framework\TestCase;
+use Tests\TestCase;
 use RuntimeException;
 use Trumpet\Common\DependencyContainer;
 

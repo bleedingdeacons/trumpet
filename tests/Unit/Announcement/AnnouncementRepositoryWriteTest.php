@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Tests\Unit\Announcement;
 
 use RuntimeException;
+use BleedingDeacons\WpMocks\WpState;
+use Brain\Monkey\Functions;
 use Tests\TestCase;
 use Trumpet\Announcement\AnnouncementRepository;
 use Trumpet\Config\TrumpetConfig;
@@ -25,11 +27,20 @@ class AnnouncementRepositoryWriteTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $GLOBALS['trumpet_test_cache'] = [];
-        unset(
-            $GLOBALS['trumpet_test_get_post'],
-            $GLOBALS['trumpet_test_update_error'],
-        );
+        // parent::setUp() clears WpState: the object cache and the seeded
+        // posts get_post() reads. Nothing to unset here.
+    }
+
+    /** Seed a post so findById() inside update() can rebuild the original. */
+    private function seed(int $id): void
+    {
+        WpState::$posts[$id] = new WP_Post([
+            'ID' => $id,
+            'post_status' => 'publish',
+            'post_type' => TrumpetConfig::ANNOUNCEMENT_POST_TYPE,
+        ]);
+        WpState::$postTypes[$id] = TrumpetConfig::ANNOUNCEMENT_POST_TYPE;
+        WpState::$postStatuses[$id] = 'publish';
     }
 
     private function repo(): AnnouncementRepository
@@ -56,7 +67,7 @@ class AnnouncementRepositoryWriteTest extends TestCase
     public function testSaveWritesEveryOptionalCustomField(): void
     {
         $announcement = $this->makeAnnouncement($this->richFields(), 'publish', 60);
-        $GLOBALS['trumpet_test_insert_id'] = 61;
+        WpState::$nextPostId = 61;
 
         $this->assertTrue($this->repo()->save($announcement));
     }
@@ -66,12 +77,10 @@ class AnnouncementRepositoryWriteTest extends TestCase
     public function testUpdateWrapsAWpErrorFromWpUpdatePost(): void
     {
         $this->setFields([self::TITLE => 'Orig'], 70);
-        $GLOBALS['trumpet_test_get_post'] = new WP_Post([
-            'ID' => 70,
-            'post_status' => 'publish',
-            'post_type' => TrumpetConfig::ANNOUNCEMENT_POST_TYPE,
-        ]);
-        $GLOBALS['trumpet_test_update_error'] = 'update refused';
+        $this->seed(70);
+        // wp-mocks' wp_update_post() always succeeds, so the WP_Error branch
+        // is reached by overriding it for this test only.
+        Functions\when('wp_update_post')->justReturn(new \WP_Error('update_failed', 'update refused'));
 
         $announcement = $this->makeAnnouncement([self::TITLE => 'Orig'], 'publish', 70);
 
@@ -87,11 +96,7 @@ class AnnouncementRepositoryWriteTest extends TestCase
         // Re-point the id's fields to 'Before' so the original that findById()
         // rebuilds inside update() differs → hasAnnouncementChanged() is true.
         $this->setFields([self::TITLE => 'Before'], 71);
-        $GLOBALS['trumpet_test_get_post'] = new WP_Post([
-            'ID' => 71,
-            'post_status' => 'publish',
-            'post_type' => TrumpetConfig::ANNOUNCEMENT_POST_TYPE,
-        ]);
+        $this->seed(71);
 
         $this->assertTrue($this->repo()->update($announcement));
     }
