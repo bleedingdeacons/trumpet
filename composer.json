@@ -58,7 +58,7 @@
         "version": [
             "@php -r \"$f='trumpet.php'; if(file_exists($f)){ $c=file_get_contents($f); if(preg_match('/Version:\\s*([0-9.]+)/',$c,$m)){ echo 'Current plugin version: '.$m[1].PHP_EOL; exit(0); }} echo 'Version not found'.PHP_EOL; exit(1);\""
         ],
-        "help": [
+        "build:help": [
             "php build.php --help"
         ],
         "test": [
@@ -97,7 +97,7 @@
         "compress:dev": "Create development archive without cleaning",
         "clean": "Remove the build directory and all archives",
         "version": "Display the current plugin version from main file",
-        "help": "Display detailed build script help and usage",
+        "build:help": "Display detailed build script help and usage",
         "test": "Run PHPUnit tests",
         "test:coverage": "Run tests with HTML coverage report",
         "test:coverage-text": "Run tests with text coverage report",
