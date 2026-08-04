@@ -29,13 +29,23 @@
         </include>
         <exclude>
             <!--
-                Admin screens are WordPress render/callback glue (metaboxes,
-                settings fields, list-table columns) exercised through
-                WordPress at runtime rather than in unit tests, so they are
-                excluded from the coverage denominator — the same call Reach
-                and Integrity make for their own src/Admin.
+                src/Trumpet/Admin is DELIBERATELY NOT EXCLUDED. It used to be,
+                on the grounds that admin screens are render/callback glue
+                exercised through WordPress at runtime — but the list-table
+                admin is not glue: it computes the status a row shows and the
+                meta value that status is sorted by, and the settings screen
+                decides whether uninstalling takes the announcements with it.
+                Amber covers its whole src/Admin on the same tooling, and
+                tests/Unit/Admin covers this one; see the class docblocks there
+                for the three branches left uncovered and why. Do not re-add it.
+
+                Removing the exclusion adds 325 previously invisible lines to
+                the denominator, so read the headline percentage with that in
+                mind: it went 751/813 (92.37%) to 1066/1138 (93.67%). It rose
+                only because those lines are better covered than the average;
+                a port like this one is expected to lower it, and doing so
+                would not have been a regression.
             -->
-            <directory suffix=".php">src/Trumpet/Admin</directory>
             <!--
                 Interface files carry no executable behaviour beyond the
                 `if (!defined('ABSPATH')) exit;` guard, so there is nothing to
