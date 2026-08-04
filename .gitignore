@@ -2,13 +2,6 @@
 /.phpunit.cache/
 .phpunit.result.cache
 
-# composer.lock, matching the rest of the suite. Trumpet and Reach were the
-# only two plugins tracking theirs; every other one ignores it, so CI resolves
-# dependencies from composer.json on each run. Keeping one plugin's lock
-# tracked pinned its dev tooling while the other sixteen floated, which is the
-# inconsistency this removes.
-composer.lock
-
 # Composer dependencies. A single rule, matching every other plugin in the
 # suite. This rule was already here; beneath it sat 3,626 lines enumerating
 # individual vendor paths, every one of them redundant because the directory
@@ -27,3 +20,11 @@ composer.lock
 # phpstan.neon.dist outright — PHPStan takes the first file it finds and does
 # not merge them. Ignored so a personal tweak cannot be committed by accident.
 /phpstan.neon
+
+# composer.lock is COMMITTED, deliberately - do not add it here.
+#
+# It was ignored across the whole suite until 2026-08-02. That made CI
+# resolve dependencies afresh on every run, so the tool versions a build
+# used were whatever had been published that morning, and Dependabot could
+# only see releases falling outside the composer.json constraints. A
+# PHPStan patch that broke the committed baseline was invisible to both.
