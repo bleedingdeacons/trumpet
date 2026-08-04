@@ -59,8 +59,9 @@ class RenderedMapMarkupTest extends TestCase
             Mockery::mock(MeetingRepository::class)
         );
 
+        // No setAccessible() call: private methods have been reflectively
+        // invocable without it since PHP 8.1, and PHP 8.5 deprecates it.
         $method = new ReflectionMethod($manager, 'renderSingleAnnouncement');
-        $method->setAccessible(true);
 
         return (string) $method->invoke($manager, $announcement);
     }
