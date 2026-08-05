@@ -32,12 +32,12 @@ class TrumpetSettings
     public function addSettingsPage(): void
     {
         add_submenu_page(
-                'trumpet',                                    // Parent slug (Trumpet menu)
-                'Trumpet Settings',                           // Page title
-                'Settings',                                   // Menu title
-                'manage_options',                             // Capability
-                TrumpetConfig::SETTINGS_PAGE,                 // Menu slug
-                [$this, 'renderSettingsPage']                // Callback
+            'trumpet',                                    // Parent slug (Trumpet menu)
+            'Trumpet Settings',                           // Page title
+            'Settings',                                   // Menu title
+            'manage_options',                             // Capability
+            TrumpetConfig::SETTINGS_PAGE,                 // Menu slug
+            [$this, 'renderSettingsPage']                // Callback
         );
     }
 
@@ -47,9 +47,9 @@ class TrumpetSettings
     public function initializeSettings(): void
     {
         register_setting(
-                TrumpetConfig::OPTION_GROUP,
-                TrumpetConfig::OPTION_NAME,
-                [
+            TrumpetConfig::OPTION_GROUP,
+            TrumpetConfig::OPTION_NAME,
+            [
                         'type' => 'array',
                         'default' => [
                                 'preserve_data' => true,
@@ -58,18 +58,18 @@ class TrumpetSettings
         );
 
         add_settings_section(
-                'uninstall_section',
-                'Uninstall Settings',
-                [$this, 'renderUninstallSection'],
-                TrumpetConfig::SETTINGS_PAGE
+            'uninstall_section',
+            'Uninstall Settings',
+            [$this, 'renderUninstallSection'],
+            TrumpetConfig::SETTINGS_PAGE
         );
 
         add_settings_field(
-                'preserve_data',
-                'Data Preservation on Uninstall',
-                [$this, 'renderPreserveDataField'],
-                TrumpetConfig::SETTINGS_PAGE,
-                'uninstall_section'
+            'preserve_data',
+            'Data Preservation on Uninstall',
+            [$this, 'renderPreserveDataField'],
+            TrumpetConfig::SETTINGS_PAGE,
+            'uninstall_section'
         );
     }
 

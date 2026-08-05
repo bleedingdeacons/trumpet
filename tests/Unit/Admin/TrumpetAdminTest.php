@@ -120,22 +120,26 @@ class TrumpetAdminTest extends TestCase
     {
         $this->admin();
 
-        foreach ([
+        foreach (
+            [
             'manage_announcement_posts_columns',
             'manage_edit-announcement_sortable_columns',
             'post_row_actions',
-        ] as $filter) {
+            ] as $filter
+        ) {
             $this->assertFilterAdded($filter, false, 'expected ' . $filter . ' to be hooked');
         }
 
-        foreach ([
+        foreach (
+            [
             'manage_announcement_posts_custom_column',
             'pre_get_posts',
             'admin_notices',
             'admin_head',
             'save_post_announcement',
             'acf/save_post',
-        ] as $action) {
+            ] as $action
+        ) {
             $this->assertActionAdded($action, false, 'expected ' . $action . ' to be hooked');
         }
     }
@@ -240,7 +244,8 @@ class TrumpetAdminTest extends TestCase
     {
         $css = $this->capture(fn () => $this->admin()->addAdminStyles());
 
-        foreach ([
+        foreach (
+            [
             '.status-active',
             '.status-expired',
             '.status-hidden',
@@ -250,7 +255,8 @@ class TrumpetAdminTest extends TestCase
             '.status-no-date',
             '.column-announcement_status',
             '.column-announcement_end_date',
-        ] as $selector) {
+            ] as $selector
+        ) {
             $this->assertStringContainsString($selector, $css);
         }
     }

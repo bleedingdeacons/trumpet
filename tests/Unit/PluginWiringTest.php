@@ -150,4 +150,3 @@ class PluginWiringTest extends TestCase
         }
     }
 }
-
