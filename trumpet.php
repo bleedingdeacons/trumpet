@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Plugin Name: Trumpet
  * Description: An announcement management plugin.
@@ -65,7 +66,7 @@ if (file_exists(TRUMPET_PLUGIN_DIR . 'vendor/autoload.php')) {
 }
 
 // Initialize the plugin after Unity is loaded
-add_action('unity/loaded', function($unityContainer) {
+add_action('unity/loaded', function ($unityContainer) {
     try {
         if (!class_exists('Trumpet\Plugin')) {
             throw new \Exception('Trumpet\Plugin class not found. Check that Plugin.php exists in the src/Trumpet/ directory.');
@@ -74,14 +75,13 @@ add_action('unity/loaded', function($unityContainer) {
         \Trumpet\Plugin::init($unityContainer);
 
         do_action('trumpet/loaded', $unityContainer);
-
     } catch (\Exception $e) {
         function_exists('wp_log')
             ? wp_log('trumpet')->error('Trumpet Plugin Initialization Error: ' . $e->getMessage(), ['exception' => $e->getMessage(), 'trace' => $e->getTraceAsString()])
             : error_log('Trumpet Plugin Initialization Error: ' . $e->getMessage());
 
         if (is_admin()) {
-            add_action('admin_notices', function() use ($e) {
+            add_action('admin_notices', function () use ($e) {
                 $message = sprintf(
                     '<strong>Trumpet Plugin Error:</strong> %s',
                     esc_html($e->getMessage())
@@ -91,14 +91,13 @@ add_action('unity/loaded', function($unityContainer) {
         }
 
         return;
-
     } catch (\Throwable $e) {
         function_exists('wp_log')
             ? wp_log('trumpet')->critical('Trumpet Plugin Fatal Error: ' . $e->getMessage(), ['exception' => $e->getMessage(), 'trace' => $e->getTraceAsString()])
             : error_log('Trumpet Plugin Fatal Error: ' . $e->getMessage());
 
         if (is_admin()) {
-            add_action('admin_notices', function() {
+            add_action('admin_notices', function () {
                 echo '<div class="notice notice-error is-dismissible"><p><strong>Trumpet Plugin Fatal Error:</strong> Plugin failed to load. Check error logs.</p></div>';
             });
         }
