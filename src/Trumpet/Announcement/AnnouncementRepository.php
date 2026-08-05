@@ -300,7 +300,8 @@ class AnnouncementRepository implements AnnouncementRepositoryInterface
         $originalEndDate = $original->getEndDate();
         $updatedEndDate = $updated->getEndDate();
 
-        if (($originalEndDate === null && $updatedEndDate !== null) ||
+        if (
+            ($originalEndDate === null && $updatedEndDate !== null) ||
             ($originalEndDate !== null && $updatedEndDate === null)
         ) {
             return true;
@@ -316,7 +317,8 @@ class AnnouncementRepository implements AnnouncementRepositoryInterface
         $originalLocation = $original->getLocation();
         $updatedLocation = $updated->getLocation();
 
-        if (($originalLocation['lat'] ?? '') !== ($updatedLocation['lat'] ?? '') ||
+        if (
+            ($originalLocation['lat'] ?? '') !== ($updatedLocation['lat'] ?? '') ||
             ($originalLocation['lng'] ?? '') !== ($updatedLocation['lng'] ?? '') ||
             ($originalLocation['address'] ?? '') !== ($updatedLocation['address'] ?? '')
         ) {
@@ -326,7 +328,8 @@ class AnnouncementRepository implements AnnouncementRepositoryInterface
         $originalMeeting = $original->getRelatedMeeting();
         $updatedMeeting = $updated->getRelatedMeeting();
 
-        if (($originalMeeting === null && $updatedMeeting !== null) ||
+        if (
+            ($originalMeeting === null && $updatedMeeting !== null) ||
             ($originalMeeting !== null && $updatedMeeting === null)
         ) {
             return true;
@@ -348,7 +351,8 @@ class AnnouncementRepository implements AnnouncementRepositoryInterface
         $originalStartDate = $original->getStartDisplayDate();
         $updatedStartDate = $updated->getStartDisplayDate();
 
-        if (($originalStartDate === null && $updatedStartDate !== null) ||
+        if (
+            ($originalStartDate === null && $updatedStartDate !== null) ||
             ($originalStartDate !== null && $updatedStartDate === null)
         ) {
             return true;
