@@ -51,11 +51,16 @@ class AnnouncementManager
      * scrolled the list into view (e.g. "3 New Announcements"), counting down
      * as they are scrolled to and reverting once none are left.
      *
-     * @param array<string, mixed>  $atts    Shortcode attributes
-     * @param string $content Shortcode content
+     * @param array<string, mixed> $atts    Shortcode attributes
+     * @param string|null          $content Shortcode content. Nullable because
+     *                                      WordPress passes null for a
+     *                                      self-closing shortcode, which is how
+     *                                      this one is meant to be used — with
+     *                                      strict_types a native `string` here
+     *                                      made that a TypeError.
      * @return string
      */
-    public function renderNewIndicator(array $atts = [], string $content = ''): string
+    public function renderNewIndicator(array $atts = [], ?string $content = ''): string
     {
         wp_enqueue_script('trumpet-announcements');
 
@@ -99,11 +104,13 @@ class AnnouncementManager
     /**
      * Generate announcements list HTML
      *
-     * @param array<string, mixed> $atts Shortcode attributes
-     * @param string $content Shortcode content
+     * @param array<string, mixed> $atts    Shortcode attributes
+     * @param string|null          $content Shortcode content; null when the
+     *                                      shortcode is self-closing. See
+     *                                      renderNewIndicator().
      * @return string
      */
-    public function generateAnnouncementsList(array $atts = [], string $content = ''): string
+    public function generateAnnouncementsList(array $atts = [], ?string $content = ''): string
     {
         try {
             $activeAnnouncements = $this->repository->findActive();

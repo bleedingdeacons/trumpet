@@ -98,9 +98,11 @@ class Announcement
         $this->endDate = self::parseDate(
             get_field(TrumpetConfig::END_DATE_FIELD, $this->id)
         );
-        $this->postDate = self::parseDate(
-            get_the_time('d/m/Y', $this->id)
-        );
+        // get_the_time() is string|int|false: false when the post has no
+        // valid date, an int only when no format is given. Anything but a
+        // string means "no post date", which parseDate() reads as null.
+        $postTime = get_the_time('d/m/Y', $this->id);
+        $this->postDate = self::parseDate(is_string($postTime) ? $postTime : null);
 
         // Get hidden status
         $this->hidden = (bool)get_field(TrumpetConfig::HIDE_FIELD, $this->id);
