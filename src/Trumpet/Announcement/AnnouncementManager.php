@@ -152,12 +152,17 @@ class AnnouncementManager
         $title_output = sprintf('<h2>%s</h2>', esc_html($announcement->getTitle()));
 
         if (current_user_can('edit_post', $announcement->getId())) {
+            // get_edit_post_link() returns null when the post type registers
+            // no edit link, which the capability check does not rule out.
+            // Keep the plain title rather than emitting an empty href.
             $edit_link = get_edit_post_link($announcement->getId());
-            $title_output = sprintf(
-                '<h2>%s <a href="%s" class="announcement-edit-link" title="Edit this announcement"><span class="dashicons dashicons-edit"></span></a></h2>',
-                esc_html($announcement->getTitle()),
-                esc_url($edit_link)
-            );
+            if ($edit_link !== null) {
+                $title_output = sprintf(
+                    '<h2>%s <a href="%s" class="announcement-edit-link" title="Edit this announcement"><span class="dashicons dashicons-edit"></span></a></h2>',
+                    esc_html($announcement->getTitle()),
+                    esc_url($edit_link)
+                );
+            }
         }
 
         $output .= $title_output;
