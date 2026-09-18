@@ -99,9 +99,13 @@ class Plugin
             /** @var Cache $cache */
             $cache = self::$container->get(Cache::class);
 
-            // Clear all plugin-related caches
+            // Clear Trumpet's own cache entry. Deliberately not a flush():
+            // Unity's Cache maps onto wp_cache_flush(), which empties the
+            // whole object cache — every other plugin's entries, and on a
+            // host where two installs share a Memcached instance, the other
+            // site's as well. Trumpet keeps exactly one key, so deleting it
+            // is not a lesser version of the flush; it is the whole job.
             $cache->delete(TrumpetConfig::ANNOUNCEMENTS_CACHE_KEY);
-            $cache->flush();
 
             // Remove scheduled tasks
             $hooks = [

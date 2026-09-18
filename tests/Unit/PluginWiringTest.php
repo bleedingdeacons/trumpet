@@ -105,7 +105,10 @@ class PluginWiringTest extends TestCase
     {
         $cache = Mockery::mock(Cache::class);
         $cache->shouldReceive('delete')->once();
-        $cache->shouldReceive('flush')->once();
+
+        // And nothing else: deactivating Trumpet must not empty the object
+        // cache for everything else on the site. Mockery fails an unexpected
+        // call, so this expectation is the assertion.
 
         $container = new FakeContainer([Cache::class => $cache]);
         (new ReflectionClass(Plugin::class))->getProperty('container')->setValue(null, $container);
