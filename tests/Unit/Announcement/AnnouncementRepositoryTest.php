@@ -164,7 +164,7 @@ class AnnouncementRepositoryTest extends TestCase
     public function testDeleteThrowsWhenWpDeleteFails(): void
     {
         // wp_delete_post() reports failure by returning false, which it does
-        // for a post that is not there — so simply do not seed one.
+        // for a post that is not there ï¿½ so simply do not seed one.
         $this->expectException(AnnouncementException::class);
         $this->repo()->delete(7);
     }
@@ -255,6 +255,25 @@ final class InMemoryUnityCache implements Cache
     public function get(string $key, string $group = '')
     {
         return $this->store[$group . '|' . $key] ?? false;
+    }
+
+    /**
+     * Unity's Cache grew this alongside its member cache. Trumpet reads one
+     * key at a time and has no use for it, but a double that does not
+     * implement the whole contract will not load at all.
+     *
+     * @param array<int, string> $keys
+     * @return array<string, mixed>
+     */
+    public function getMultiple(array $keys, string $group = ''): array
+    {
+        $found = [];
+
+        foreach ($keys as $key) {
+            $found[$key] = $this->get($key, $group);
+        }
+
+        return $found;
     }
 
     public function set(string $key, mixed $value, string $group = '', int $expire = 0): bool

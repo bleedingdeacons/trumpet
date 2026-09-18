@@ -166,6 +166,19 @@ final class ThrowingCache implements Cache
         throw new RuntimeException('cache exploded');
     }
 
+    /**
+     * Blows up like get(), for the same reason: this double exists to prove
+     * the repository's catch blocks work, and a read that quietly succeeded
+     * would be the one hole in it.
+     *
+     * @param array<int, string> $keys
+     * @return array<string, mixed>
+     */
+    public function getMultiple(array $keys, string $group = ''): array
+    {
+        throw new RuntimeException('cache exploded');
+    }
+
     public function set(string $key, mixed $value, string $group = '', int $expire = 0): bool
     {
         return true;
