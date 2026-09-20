@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Announcement;
 
+use PHPUnit\Framework\Attributes\Test;
 use Mockery;
 use ReflectionMethod;
 use Tests\TestCase;
@@ -66,9 +67,7 @@ class RenderedMapMarkupTest extends TestCase
         return (string) $method->invoke($manager, $announcement);
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function it_renders_the_map_for_real_coordinates(): void
     {
         $html = $this->render($this->makeAnnouncement([
@@ -85,9 +84,8 @@ class RenderedMapMarkupTest extends TestCase
      * The behaviour this change exists for. Previously the map was gated on
      * getShowMap() alone, so this rendered a marker carrying empty
      * coordinates for the front end to choke on.
-     *
-     * @test
      */
+    #[Test]
     public function it_renders_no_map_when_the_coordinates_are_blank(): void
     {
         $html = $this->render($this->makeAnnouncement([
@@ -99,9 +97,7 @@ class RenderedMapMarkupTest extends TestCase
         $this->assertStringNotContainsString('data-lat=""', $html);
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function it_renders_no_map_for_null_island(): void
     {
         $html = $this->render($this->makeAnnouncement([
@@ -112,9 +108,7 @@ class RenderedMapMarkupTest extends TestCase
         $this->assertStringNotContainsString('acf-map', $html);
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function it_renders_no_map_when_the_map_is_switched_off(): void
     {
         $html = $this->render($this->makeAnnouncement([
@@ -128,9 +122,8 @@ class RenderedMapMarkupTest extends TestCase
     /**
      * A meeting on the meridian keeps its map — the case that made "both
      * coordinates zero" the right rule rather than "either".
-     *
-     * @test
      */
+    #[Test]
     public function it_renders_the_map_on_the_greenwich_meridian(): void
     {
         $html = $this->render($this->makeAnnouncement([

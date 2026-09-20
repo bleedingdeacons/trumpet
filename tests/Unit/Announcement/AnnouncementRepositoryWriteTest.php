@@ -4,9 +4,10 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Announcement;
 
+use PHPUnit\Framework\Attributes\CoversClass;
+use function Brain\Monkey\Functions\when;
 use RuntimeException;
 use BleedingDeacons\WpMocks\WpState;
-use Brain\Monkey\Functions;
 use Tests\TestCase;
 use Trumpet\Announcement\AnnouncementRepository;
 use Trumpet\Config\TrumpetConfig;
@@ -19,9 +20,8 @@ use WP_Post;
  * the full updateCustomFields fan-out on a save with every optional field, the
  * update() WP_Error and "changed" branches, and the remaining null-vs-set /
  * multi-value comparisons in hasAnnouncementChanged.
- *
- * @covers \Trumpet\Announcement\AnnouncementRepository
  */
+#[CoversClass(\Trumpet\Announcement\AnnouncementRepository::class)]
 class AnnouncementRepositoryWriteTest extends TestCase
 {
     protected function setUp(): void
@@ -80,7 +80,7 @@ class AnnouncementRepositoryWriteTest extends TestCase
         $this->seed(70);
         // wp-mocks' wp_update_post() always succeeds, so the WP_Error branch
         // is reached by overriding it for this test only.
-        Functions\when('wp_update_post')->justReturn(new \WP_Error('update_failed', 'update refused'));
+        when('wp_update_post')->justReturn(new \WP_Error('update_failed', 'update refused'));
 
         $announcement = $this->makeAnnouncement([self::TITLE => 'Orig'], 'publish', 70);
 

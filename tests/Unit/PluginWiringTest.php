@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace Tests\Unit;
 
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Test;
+use function Brain\Monkey\Functions\when;
 use Mockery;
 use BleedingDeacons\WpMocks\WpState;
-use Brain\Monkey\Functions;
 use Tests\TestCase;
 use ReflectionClass;
 use RuntimeException;
@@ -15,7 +17,6 @@ use Trumpet\Announcement\AnnouncementManager;
 use Trumpet\Announcement\AnnouncementRepositoryInterface;
 use Trumpet\Plugin;
 use Unity\Core\Interfaces\Cache;
-use Unity\Core\Interfaces\Container;
 use Unity\Meetings\Interfaces\MeetingRepository;
 use Unity\Testing\Doubles\FakeContainer;
 
@@ -24,9 +25,8 @@ use Unity\Testing\Doubles\FakeContainer;
  * container, resolving the tracker/manager, the getContainer() guard, and the
  * deactivation cleanup. registerTrumpetMenu()/render*Page() are admin/output
  * glue and are only registered here, not invoked.
- *
- * @covers \Trumpet\Plugin
  */
+#[CoversClass(\Trumpet\Plugin::class)]
 class PluginWiringTest extends TestCase
 {
     protected function setUp(): void
@@ -50,9 +50,8 @@ class PluginWiringTest extends TestCase
      * wp_log() the resolution memoises in a static that nothing resets between
      * tests, so whichever call logs first does the resolving — clear it here
      * so the override actually runs where it is being asserted on.
-     *
-     * @test
      */
+    #[Test]
     public function it_logs_through_its_own_channel(): void
     {
         (new ReflectionClass(Plugin::class))->getProperty('loggerChannel')->setValue(null, null);
@@ -71,7 +70,7 @@ class PluginWiringTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function init_registers_services_and_resolves_the_tracker_and_manager(): void
     {
         $container = $this->container();
@@ -83,7 +82,7 @@ class PluginWiringTest extends TestCase
         $this->assertInstanceOf(AnnouncementManager::class, $container->get(AnnouncementManager::class));
     }
 
-    /** @test */
+    #[Test]
     public function init_is_idempotent(): void
     {
         $container = $this->container();
@@ -93,14 +92,14 @@ class PluginWiringTest extends TestCase
         $this->assertSame($container, Plugin::getContainer());
     }
 
-    /** @test */
+    #[Test]
     public function get_container_throws_before_init(): void
     {
         $this->expectException(RuntimeException::class);
         Plugin::getContainer();
     }
 
-    /** @test */
+    #[Test]
     public function deactivate_clears_caches_drops_tables_and_removes_capabilities(): void
     {
         $cache = Mockery::mock(Cache::class);
@@ -121,7 +120,7 @@ class PluginWiringTest extends TestCase
         // for the duration of the test.
         $role = Mockery::mock();
         $role->shouldReceive('remove_cap')->atLeast()->once();
-        Functions\when('get_role')->justReturn($role);
+        when('get_role')->justReturn($role);
 
         // $wpdb: report the table exists so the DROP path runs.
         $wpdb = Mockery::mock('wpdb');
@@ -135,7 +134,7 @@ class PluginWiringTest extends TestCase
         $this->assertTrue(true);
     }
 
-    /** @test */
+    #[Test]
     public function deactivate_swallows_the_error_when_not_initialised(): void
     {
         // Container null → the guard throws, the catch logs, nothing escapes.

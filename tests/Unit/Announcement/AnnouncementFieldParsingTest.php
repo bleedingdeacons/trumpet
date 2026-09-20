@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Announcement;
 
+use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 /**
@@ -15,9 +16,7 @@ use Tests\TestCase;
  */
 class AnnouncementFieldParsingTest extends TestCase
 {
-    /**
-     * @test
-     */
+    #[Test]
     public function it_parses_a_uk_format_date(): void
     {
         $announcement = $this->makeAnnouncement([
@@ -28,9 +27,7 @@ class AnnouncementFieldParsingTest extends TestCase
         $this->assertSame('2026-03-15', $announcement->getStartDisplayDate()?->format('Y-m-d'));
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function it_formats_a_date_with_a_caller_supplied_format(): void
     {
         $announcement = $this->makeAnnouncement([
@@ -45,9 +42,8 @@ class AnnouncementFieldParsingTest extends TestCase
      * rather than reinterpreted — which matters because 03/04 in the two
      * formats are different days, so guessing would silently move an
      * announcement by months.
-     *
-     * @test
      */
+    #[Test]
     public function it_rejects_an_iso_date_rather_than_guessing(): void
     {
         $announcement = $this->makeAnnouncement([
@@ -58,9 +54,7 @@ class AnnouncementFieldParsingTest extends TestCase
         $this->assertSame('', $announcement->getFormattedStartDisplayDate());
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function it_drops_an_unparseable_date(): void
     {
         $announcement = $this->makeAnnouncement([
@@ -74,9 +68,8 @@ class AnnouncementFieldParsingTest extends TestCase
      * An absent start date means "display immediately", so a date the parser
      * rejects silently becomes one. Pinned because it makes a typo in the
      * admin fail open — the announcement publishes at once instead of waiting.
-     *
-     * @test
      */
+    #[Test]
     public function an_unparseable_start_date_makes_the_announcement_display_immediately(): void
     {
         $announcement = $this->makeAnnouncement([
@@ -94,9 +87,8 @@ class AnnouncementFieldParsingTest extends TestCase
      * 31 February becomes 3 March. Characterising current behaviour — this is
      * PHP's, not Trumpet's, but it is worth pinning so a future switch to
      * strict parsing is a deliberate decision with a visibly changed test.
-     *
-     * @test
      */
+    #[Test]
     public function an_impossible_date_overflows_into_the_next_month(): void
     {
         $announcement = $this->makeAnnouncement([
@@ -106,9 +98,7 @@ class AnnouncementFieldParsingTest extends TestCase
         $this->assertSame('2026-03-03', $announcement->getStartDisplayDate()?->format('Y-m-d'));
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function a_location_with_coordinates_is_valid_when_the_map_is_shown(): void
     {
         $announcement = $this->makeAnnouncement([
@@ -119,9 +109,7 @@ class AnnouncementFieldParsingTest extends TestCase
         $this->assertTrue($announcement->hasValidLocation());
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function a_location_is_not_valid_when_the_map_is_switched_off(): void
     {
         $announcement = $this->makeAnnouncement([
@@ -132,9 +120,7 @@ class AnnouncementFieldParsingTest extends TestCase
         $this->assertFalse($announcement->hasValidLocation());
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function null_island_is_rejected(): void
     {
         $announcement = $this->makeAnnouncement([
@@ -150,9 +136,8 @@ class AnnouncementFieldParsingTest extends TestCase
      * fail, because sanitizeLocation() always writes both keys, defaulting to
      * ''. An announcement with the map switched on and nothing entered
      * reported a valid location.
-     *
-     * @test
      */
+    #[Test]
     public function blank_coordinates_are_not_a_valid_location(): void
     {
         $announcement = $this->makeAnnouncement([
@@ -163,9 +148,7 @@ class AnnouncementFieldParsingTest extends TestCase
         $this->assertFalse($announcement->hasValidLocation());
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function an_empty_string_coordinate_is_not_a_valid_location(): void
     {
         $announcement = $this->makeAnnouncement([
@@ -178,9 +161,8 @@ class AnnouncementFieldParsingTest extends TestCase
 
     /**
      * Half a location is not a location.
-     *
-     * @test
      */
+    #[Test]
     public function a_missing_longitude_is_not_a_valid_location(): void
     {
         $announcement = $this->makeAnnouncement([
@@ -194,9 +176,8 @@ class AnnouncementFieldParsingTest extends TestCase
     /**
      * Null island written as a decimal. The original guard compared strings
      * against "0", so '0.0' and '0.00' walked straight through it.
-     *
-     * @test
      */
+    #[Test]
     public function zero_written_as_a_decimal_is_still_null_island(): void
     {
         foreach (['0.0', '0.00', '0'] as $zero) {
@@ -216,9 +197,8 @@ class AnnouncementFieldParsingTest extends TestCase
      * A single zero is a real place. The Greenwich meridian is longitude 0 and
      * runs through London, so an announcement there must keep its map — only
      * 0,0 together is the failed-geocode sentinel.
-     *
-     * @test
      */
+    #[Test]
     public function a_location_on_the_greenwich_meridian_stays_valid(): void
     {
         $announcement = $this->makeAnnouncement([
@@ -232,9 +212,7 @@ class AnnouncementFieldParsingTest extends TestCase
         );
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function a_non_numeric_coordinate_is_not_a_valid_location(): void
     {
         $announcement = $this->makeAnnouncement([
@@ -245,9 +223,7 @@ class AnnouncementFieldParsingTest extends TestCase
         $this->assertFalse($announcement->hasValidLocation());
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function it_reports_the_post_status_it_was_built_from(): void
     {
         $pending = $this->makeAnnouncement([], 'pending');

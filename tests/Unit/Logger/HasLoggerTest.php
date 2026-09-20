@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Logger;
 
+use PHPUnit\Framework\Attributes\CoversTrait;
+use PHPUnit\Framework\Attributes\CoversClass;
 use BleedingDeacons\WpMocks\WpState;
 use Tests\TestCase;
 use Trumpet\Exception\AnnouncementException;
@@ -15,10 +17,9 @@ use Trumpet\Logger\HasLogger;
  * every level forwarder; wp-mocks' `sentinel` group supplies the channel, so
  * what each forwarder emits is assertable. AnnouncementException's constructor
  * logs through the same trait (on Plugin), so it is covered here too.
- *
- * @covers \Trumpet\Logger\HasLogger
- * @covers \Trumpet\Exception\AnnouncementException
  */
+#[CoversTrait(\Trumpet\Logger\HasLogger::class)]
+#[CoversClass(\Trumpet\Exception\AnnouncementException::class)]
 class HasLoggerTest extends TestCase
 {
     public function testEveryLevelForwarderReachesTheChannel(): void

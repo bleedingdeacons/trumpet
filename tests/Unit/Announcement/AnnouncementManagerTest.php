@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Announcement;
 
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Test;
+use Mockery\MockInterface;
 use Mockery;
 use BleedingDeacons\WpMocks\WpState;
 use Tests\TestCase;
@@ -19,14 +22,13 @@ use Unity\Meetings\Interfaces\MeetingRepository;
  * [announcements_indicator] shortcodes, the single-announcement render
  * (title, content, map, related meetings, meta), asset registration, the
  * inline stylesheet, and the empty/error branches.
- *
- * @covers \Trumpet\Announcement\AnnouncementManager
  */
+#[CoversClass(\Trumpet\Announcement\AnnouncementManager::class)]
 class AnnouncementManagerTest extends TestCase
 {
-    /** @var AnnouncementRepositoryInterface&\Mockery\MockInterface */
+    /** @var AnnouncementRepositoryInterface&MockInterface */
     private $repo;
-    /** @var MeetingRepository&\Mockery\MockInterface */
+    /** @var MeetingRepository&MockInterface */
     private $meetings;
     private AnnouncementManager $manager;
 
@@ -50,7 +52,7 @@ class AnnouncementManagerTest extends TestCase
         ], 'publish', 100);
     }
 
-    /** @test */
+    #[Test]
     public function add_styles_emits_the_inline_stylesheet(): void
     {
         ob_start();
@@ -60,21 +62,21 @@ class AnnouncementManagerTest extends TestCase
         $this->assertStringContainsString('.announcement', $css);
     }
 
-    /** @test */
+    #[Test]
     public function get_announcements_returns_the_repository_result(): void
     {
         $this->repo->shouldReceive('findAll')->andReturn(['a', 'b']);
         $this->assertSame(['a', 'b'], $this->manager->getAnnouncements());
     }
 
-    /** @test */
+    #[Test]
     public function get_announcements_returns_empty_on_a_repository_error(): void
     {
         $this->repo->shouldReceive('findAll')->andThrow(new AnnouncementException('boom'));
         $this->assertSame([], $this->manager->getAnnouncements());
     }
 
-    /** @test */
+    #[Test]
     public function generate_list_renders_active_announcements_with_map_and_meetings(): void
     {
         $meeting = Mockery::mock(Meeting::class);
@@ -94,7 +96,7 @@ class AnnouncementManagerTest extends TestCase
         $this->assertStringContainsString('Valid until', $html);
     }
 
-    /** @test */
+    #[Test]
     public function single_render_includes_edit_link_thumbnail_and_offline_meeting(): void
     {
         // Admin editor → edit link; a thumbnail → featured image; an in-person
@@ -119,7 +121,7 @@ class AnnouncementManagerTest extends TestCase
         $this->assertStringContainsString('face2face', $html);
     }
 
-    /** @test */
+    #[Test]
     public function single_render_skips_a_meeting_the_repository_cannot_find(): void
     {
         $this->meetings->shouldReceive('findById')->with(7)->andReturn(null);
@@ -131,28 +133,28 @@ class AnnouncementManagerTest extends TestCase
         $this->assertStringNotContainsString('meeting_link', $html);
     }
 
-    /** @test */
+    #[Test]
     public function generate_list_shows_the_empty_message(): void
     {
         $this->repo->shouldReceive('findActive')->andReturn([]);
         $this->assertStringContainsString('No current announcements', $this->manager->generateAnnouncementsList());
     }
 
-    /** @test */
+    #[Test]
     public function generate_list_returns_an_error_message_on_exception(): void
     {
         $this->repo->shouldReceive('findActive')->andThrow(new AnnouncementException('boom'));
         $this->assertStringContainsString('error-message', $this->manager->generateAnnouncementsList());
     }
 
-    /** @test */
+    #[Test]
     public function render_new_indicator_returns_the_banner(): void
     {
         $html = $this->manager->renderNewIndicator();
         $this->assertStringContainsString('announcements-new-banner', $html);
     }
 
-    /** @test */
+    #[Test]
     public function register_assets_registers_the_script(): void
     {
         $this->manager->registerAssets();

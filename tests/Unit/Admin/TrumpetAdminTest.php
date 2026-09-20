@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Admin;
 
-use Brain\Monkey\Functions;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Test;
+use PHPUnit\Framework\Attributes\DataProvider;
+use function Brain\Monkey\Functions\when;
 use BleedingDeacons\WpMocks\WpState;
 use DateTime;
 use Exception;
@@ -55,9 +58,8 @@ use WP_Screen;
  *     rather than a function, so there is no seam to make it throw. The other
  *     four catch blocks in this class are covered, two through the manager mock
  *     and two by aliasing get_posts()/update_post_meta() to throw.
- *
- * @covers \Trumpet\Admin\TrumpetAdmin
  */
+#[CoversClass(\Trumpet\Admin\TrumpetAdmin::class)]
 class TrumpetAdminTest extends TestCase
 {
     /** @var AnnouncementManager&Mockery\MockInterface */
@@ -114,8 +116,7 @@ class TrumpetAdminTest extends TestCase
     }
 
     // ── registration ──────────────────────────────────────────────────
-
-    /** @test */
+    #[Test]
     public function the_constructor_registers_every_admin_hook(): void
     {
         $this->admin();
@@ -147,9 +148,8 @@ class TrumpetAdminTest extends TestCase
     /**
      * The constructor bails before assigning its dependencies, so a front-end
      * request must not leave any of these hooks behind.
-     *
-     * @test
      */
+    #[Test]
     public function nothing_is_hooked_outside_the_admin(): void
     {
         WpState::$isAdmin = false;
@@ -162,13 +162,11 @@ class TrumpetAdminTest extends TestCase
     }
 
     // ── list-table columns ────────────────────────────────────────────
-
     /**
      * The date column is pulled out and re-appended so the announcement
      * columns sit in front of it rather than after it.
-     *
-     * @test
      */
+    #[Test]
     public function the_announcement_columns_are_inserted_ahead_of_the_date_column(): void
     {
         $columns = TrumpetAdmin::addCustomColumns([
@@ -189,7 +187,7 @@ class TrumpetAdminTest extends TestCase
         $this->assertSame('Date', $columns['date'], 'the original date label should survive the move');
     }
 
-    /** @test */
+    #[Test]
     public function a_column_set_with_no_date_column_gains_only_the_announcement_columns(): void
     {
         $columns = TrumpetAdmin::addCustomColumns(['title' => 'Title']);
@@ -202,7 +200,7 @@ class TrumpetAdminTest extends TestCase
         ], array_keys($columns));
     }
 
-    /** @test */
+    #[Test]
     public function the_announcement_columns_are_registered_as_sortable(): void
     {
         $this->assertSame([
@@ -214,8 +212,7 @@ class TrumpetAdminTest extends TestCase
     }
 
     // ── quick edit ────────────────────────────────────────────────────
-
-    /** @test */
+    #[Test]
     public function quick_edit_is_removed_from_an_announcement_row(): void
     {
         $actions = $this->admin()->removeQuickEdit(
@@ -226,7 +223,7 @@ class TrumpetAdminTest extends TestCase
         $this->assertSame(['edit' => 'Edit', 'trash' => 'Trash'], $actions);
     }
 
-    /** @test */
+    #[Test]
     public function quick_edit_survives_on_other_post_types(): void
     {
         $actions = ['edit' => 'Edit', 'inline hide-if-no-js' => 'Quick Edit'];
@@ -238,8 +235,7 @@ class TrumpetAdminTest extends TestCase
     }
 
     // ── admin styles ──────────────────────────────────────────────────
-
-    /** @test */
+    #[Test]
     public function the_status_colours_and_column_widths_are_printed_into_admin_head(): void
     {
         $css = $this->capture(fn () => $this->admin()->addAdminStyles());
@@ -262,8 +258,7 @@ class TrumpetAdminTest extends TestCase
     }
 
     // ── column content ────────────────────────────────────────────────
-
-    /** @test */
+    #[Test]
     public function the_end_date_column_prints_the_stored_end_date(): void
     {
         $this->setFields([self::END_DATE => '31/12/2026']);
@@ -274,7 +269,7 @@ class TrumpetAdminTest extends TestCase
         );
     }
 
-    /** @test */
+    #[Test]
     public function an_announcement_with_no_end_date_prints_an_empty_end_date_column(): void
     {
         $this->assertSame('', $this->column('announcement_end_date'));
@@ -283,9 +278,8 @@ class TrumpetAdminTest extends TestCase
     /**
      * A start date still in the future is shown as the date itself, so an
      * editor can see when the announcement will appear.
-     *
-     * @test
      */
+    #[Test]
     public function a_future_start_date_is_printed_and_its_sort_key_recorded(): void
     {
         $future = self::offsetDate(10);
@@ -298,7 +292,7 @@ class TrumpetAdminTest extends TestCase
         );
     }
 
-    /** @test */
+    #[Test]
     public function a_start_date_already_reached_prints_started(): void
     {
         $this->setFields([self::START_DISPLAY => self::offsetDate(-1)]);
@@ -309,9 +303,8 @@ class TrumpetAdminTest extends TestCase
     /**
      * An unparseable value is treated as "already started" rather than shown
      * back to the editor, and sorts to the end of the list.
-     *
-     * @test
      */
+    #[Test]
     public function an_unparseable_start_date_prints_started_and_sorts_last(): void
     {
         $this->setFields([self::START_DISPLAY => 'whenever']);
@@ -320,7 +313,7 @@ class TrumpetAdminTest extends TestCase
         $this->assertSame('9999-99-99', $this->sortMeta('_announcement_start_date_sort'));
     }
 
-    /** @test */
+    #[Test]
     public function an_empty_start_date_prints_a_dash_and_sorts_last(): void
     {
         $html = $this->column('announcement_start_date');
@@ -330,22 +323,21 @@ class TrumpetAdminTest extends TestCase
         $this->assertSame('9999-99-99', $this->sortMeta('_announcement_start_date_sort'));
     }
 
-    /** @test */
+    #[Test]
     public function an_unrecognised_column_prints_nothing(): void
     {
         $this->assertSame('', $this->column('title'));
     }
 
     // ── status column ─────────────────────────────────────────────────
-
     /**
      * The status shown in the list table and the meta value it is sorted by are
      * computed together, so they are asserted together.
      *
-     * @test
-     * @dataProvider announcementStatuses
      * @param array<string, mixed> $fields
      */
+    #[DataProvider('announcementStatuses')]
+    #[Test]
     public function the_status_column_reports_and_records_the_announcement_status(
         array $fields,
         string $postStatus,
@@ -434,9 +426,8 @@ class TrumpetAdminTest extends TestCase
      * A post id with nothing behind it — a row deleted between the query and
      * the render — falls through the pending check to the date logic rather
      * than erroring on a null post.
-     *
-     * @test
      */
+    #[Test]
     public function a_missing_post_still_yields_a_status(): void
     {
         $this->setFields([self::END_DATE => self::offsetDate(3)]);
@@ -448,8 +439,7 @@ class TrumpetAdminTest extends TestCase
     }
 
     // ── sorting ───────────────────────────────────────────────────────
-
-    /** @test */
+    #[Test]
     public function sorting_is_left_alone_outside_the_admin(): void
     {
         $admin = $this->admin();
@@ -462,7 +452,7 @@ class TrumpetAdminTest extends TestCase
         $this->assertSame('', $query->get('meta_key'));
     }
 
-    /** @test */
+    #[Test]
     public function sorting_is_left_alone_for_a_secondary_query(): void
     {
         $query = new WP_Query(['orderby' => 'end_date']);
@@ -474,7 +464,7 @@ class TrumpetAdminTest extends TestCase
         $this->assertSame('', $query->get('meta_key'));
     }
 
-    /** @test */
+    #[Test]
     public function sorting_by_end_date_orders_on_the_acf_end_date_field(): void
     {
         $query = new WP_Query(['orderby' => 'end_date']);
@@ -488,9 +478,8 @@ class TrumpetAdminTest extends TestCase
     /**
      * The start date is stored as d/m/Y, which does not sort, so ordering goes
      * through a Y-m-d shadow meta key instead.
-     *
-     * @test
      */
+    #[Test]
     public function sorting_by_start_date_orders_on_the_shadow_sort_key(): void
     {
         $query = new WP_Query(['orderby' => 'start_date']);
@@ -505,9 +494,8 @@ class TrumpetAdminTest extends TestCase
     /**
      * On the announcement list screen the shadow keys are rebuilt first, so a
      * row whose date was edited elsewhere still sorts correctly.
-     *
-     * @test
      */
+    #[Test]
     public function sorting_by_start_date_on_the_announcement_screen_rebuilds_every_shadow_key(): void
     {
         $this->seedAnnouncements([
@@ -522,7 +510,7 @@ class TrumpetAdminTest extends TestCase
         $this->assertSame('9999-99-99', WpState::$postMeta[202]['_announcement_start_date_sort']);
     }
 
-    /** @test */
+    #[Test]
     public function sorting_by_status_orders_on_the_status_sort_key(): void
     {
         $query = new WP_Query(['orderby' => 'announcement_status']);
@@ -534,7 +522,7 @@ class TrumpetAdminTest extends TestCase
         $this->assertSame([], WpState::$postMeta, 'no screen means no rebuild');
     }
 
-    /** @test */
+    #[Test]
     public function sorting_by_status_on_the_announcement_screen_rebuilds_every_status_key(): void
     {
         $this->seedAnnouncements([
@@ -549,7 +537,7 @@ class TrumpetAdminTest extends TestCase
         $this->assertSame('hidden', WpState::$postMeta[302]['_announcement_status_sort']);
     }
 
-    /** @test */
+    #[Test]
     public function no_rebuild_happens_on_another_screen(): void
     {
         $this->seedAnnouncements([301 => [self::END_DATE => self::offsetDate(5)]]);
@@ -560,7 +548,7 @@ class TrumpetAdminTest extends TestCase
         $this->assertSame([], WpState::$postMeta);
     }
 
-    /** @test */
+    #[Test]
     public function an_unrecognised_orderby_is_left_alone(): void
     {
         $query = new WP_Query(['orderby' => 'title']);
@@ -574,15 +562,14 @@ class TrumpetAdminTest extends TestCase
     /**
      * The rebuild loops swallow failures rather than breaking the list table,
      * and both report through Plugin's logger.
-     *
-     * @test
-     * @dataProvider rebuildOrderings
      */
+    #[DataProvider('rebuildOrderings')]
+    #[Test]
     public function a_failed_rebuild_is_logged_and_leaves_the_list_table_working(
         string $orderby,
         string $expectedMessage
     ): void {
-        Functions\when('get_posts')->alias(static function (array $args = []): array {
+        when('get_posts')->alias(static function (array $args = []): array {
             throw new Exception('the posts table is unavailable');
         });
         WpState::$screen = new WP_Screen(['id' => 'edit-' . TrumpetConfig::ANNOUNCEMENT_POST_TYPE]);
@@ -604,8 +591,7 @@ class TrumpetAdminTest extends TestCase
     }
 
     // ── admin notices ─────────────────────────────────────────────────
-
-    /** @test */
+    #[Test]
     public function no_notices_are_printed_away_from_the_announcement_list(): void
     {
         $GLOBALS['pagenow'] = 'index.php';
@@ -614,7 +600,7 @@ class TrumpetAdminTest extends TestCase
         $this->assertSame('', $this->capture(fn () => $this->admin()->displayAdminNotices()));
     }
 
-    /** @test */
+    #[Test]
     public function no_notices_are_printed_for_another_post_type(): void
     {
         $GLOBALS['pagenow'] = 'edit.php';
@@ -623,7 +609,7 @@ class TrumpetAdminTest extends TestCase
         $this->assertSame('', $this->capture(fn () => $this->admin()->displayAdminNotices()));
     }
 
-    /** @test */
+    #[Test]
     public function nothing_is_printed_when_every_count_is_zero(): void
     {
         $this->onAnnouncementList();
@@ -632,7 +618,7 @@ class TrumpetAdminTest extends TestCase
         $this->assertSame('', $this->capture(fn () => $this->admin()->displayAdminNotices()));
     }
 
-    /** @test */
+    #[Test]
     public function expired_announcements_raise_a_pluralised_warning(): void
     {
         $this->onAnnouncementList();
@@ -647,7 +633,7 @@ class TrumpetAdminTest extends TestCase
         $this->assertStringContainsString('There are 2 expired announcements.', $html);
     }
 
-    /** @test */
+    #[Test]
     public function a_single_expired_announcement_reads_in_the_singular(): void
     {
         $this->onAnnouncementList();
@@ -664,9 +650,8 @@ class TrumpetAdminTest extends TestCase
     /**
      * The review count comes from the posts table rather than the manager,
      * because a pending post is not something the front-end query returns.
-     *
-     * @test
      */
+    #[Test]
     public function announcements_awaiting_review_raise_their_own_notice(): void
     {
         $this->onAnnouncementList();
@@ -685,7 +670,7 @@ class TrumpetAdminTest extends TestCase
         $this->assertStringContainsString('#f56e28', $html);
     }
 
-    /** @test */
+    #[Test]
     public function announcements_not_yet_due_raise_an_informational_notice(): void
     {
         $this->onAnnouncementList();
@@ -699,7 +684,7 @@ class TrumpetAdminTest extends TestCase
         $this->assertStringContainsString('There is 1 pending announcement.', $html);
     }
 
-    /** @test */
+    #[Test]
     public function a_hidden_announcement_is_not_counted_as_pending(): void
     {
         $this->onAnnouncementList();
@@ -717,9 +702,8 @@ class TrumpetAdminTest extends TestCase
     /**
      * Both manager-backed counts fail closed at zero and log, so a broken
      * repository leaves the list table usable rather than fatal.
-     *
-     * @test
      */
+    #[Test]
     public function a_failure_counting_announcements_is_logged_and_reported_as_zero(): void
     {
         $this->onAnnouncementList();
@@ -735,8 +719,7 @@ class TrumpetAdminTest extends TestCase
     }
 
     // ── saves ─────────────────────────────────────────────────────────
-
-    /** @test */
+    #[Test]
     public function saving_a_published_announcement_records_its_status_and_sort_keys(): void
     {
         WpState::addPost(701, [
@@ -758,7 +741,7 @@ class TrumpetAdminTest extends TestCase
         $this->assertSame('2026-03-05', WpState::$postMeta[701]['_announcement_start_date_sort']);
     }
 
-    /** @test */
+    #[Test]
     public function saving_a_draft_records_nothing(): void
     {
         $this->admin()->updateStatusOnSave(
@@ -770,10 +753,10 @@ class TrumpetAdminTest extends TestCase
         $this->assertSame([], WpState::$postMeta);
     }
 
-    /** @test */
+    #[Test]
     public function a_revision_save_is_ignored(): void
     {
-        Functions\when('wp_is_post_revision')->justReturn(702);
+        when('wp_is_post_revision')->justReturn(702);
 
         $this->admin()->updateStatusOnSave(
             701,
@@ -787,9 +770,8 @@ class TrumpetAdminTest extends TestCase
     /**
      * ACF saves fire for every post type, so the handler has to filter on type
      * itself — save_post_announcement does that for it, acf/save_post does not.
-     *
-     * @test
      */
+    #[Test]
     public function an_acf_save_on_another_post_type_is_ignored(): void
     {
         WpState::addPost(801, ['post_type' => 'page']);
@@ -799,7 +781,7 @@ class TrumpetAdminTest extends TestCase
         $this->assertSame([], WpState::$postMeta);
     }
 
-    /** @test */
+    #[Test]
     public function an_acf_save_records_the_status_and_sort_keys(): void
     {
         WpState::addPost(801, [
@@ -814,14 +796,14 @@ class TrumpetAdminTest extends TestCase
         $this->assertSame('9999-99-99', WpState::$postMeta[801]['_announcement_start_date_sort']);
     }
 
-    /** @test */
+    #[Test]
     public function an_acf_save_on_a_revision_is_ignored(): void
     {
         WpState::addPost(801, [
             'post_type' => TrumpetConfig::ANNOUNCEMENT_POST_TYPE,
             'post_status' => 'publish',
         ]);
-        Functions\when('wp_is_post_revision')->justReturn(802);
+        when('wp_is_post_revision')->justReturn(802);
 
         $this->admin()->updateStatusOnAcfSave(801);
 
@@ -831,12 +813,11 @@ class TrumpetAdminTest extends TestCase
     /**
      * The column callback swallows failures so one bad row cannot blank the
      * whole list table.
-     *
-     * @test
      */
+    #[Test]
     public function a_failure_rendering_a_column_is_logged_rather_than_thrown(): void
     {
-        Functions\when('update_post_meta')->alias(
+        when('update_post_meta')->alias(
             static function (int $postId, string $key, mixed $value, mixed $prev = ''): bool {
                 throw new Exception('the meta table is unavailable');
             }
