@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Common;
 
+use PHPUnit\Framework\Attributes\CoversClass;
 use Tests\TestCase;
 use Trumpet\Common\Functions;
 use Trumpet\Common\WordPressCache;
@@ -12,11 +13,10 @@ use Trumpet\Config\TrumpetConfig;
 /**
  * Cover the small pure helpers: the link/anchor builders in Functions, the
  * wp_cache_* adapter, and that TrumpetConfig's constants are reachable.
- *
- * @covers \Trumpet\Common\Functions
- * @covers \Trumpet\Common\WordPressCache
- * @covers \Trumpet\Config\TrumpetConfig
  */
+#[CoversClass(\Trumpet\Common\Functions::class)]
+#[CoversClass(\Trumpet\Common\WordPressCache::class)]
+#[CoversClass(\Trumpet\Config\TrumpetConfig::class)]
 class FunctionsAndCacheTest extends TestCase
 {
     protected function setUp(): void

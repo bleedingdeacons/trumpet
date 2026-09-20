@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Announcement;
 
+use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 /**
@@ -26,9 +27,8 @@ class MapRenderGateTest extends TestCase
      * The invariant the swap depends on: hasValidLocation() must imply
      * getShowMap(). If that ever stopped holding, moving the gate would start
      * showing maps on announcements whose author had switched the map off.
-     *
-     * @test
      */
+    #[Test]
     public function a_valid_location_always_implies_the_map_is_switched_on(): void
     {
         $locations = [
@@ -60,9 +60,8 @@ class MapRenderGateTest extends TestCase
     /**
      * The case the gate exists for: map on, nothing entered. Previously this
      * rendered a marker with empty coordinates.
-     *
-     * @test
      */
+    #[Test]
     public function an_announcement_with_no_coordinates_is_not_rendered(): void
     {
         $announcement = $this->makeAnnouncement([
@@ -78,9 +77,8 @@ class MapRenderGateTest extends TestCase
 
     /**
      * ...and the case it must not break.
-     *
-     * @test
      */
+    #[Test]
     public function an_announcement_with_real_coordinates_is_still_rendered(): void
     {
         $announcement = $this->makeAnnouncement([
@@ -94,9 +92,8 @@ class MapRenderGateTest extends TestCase
     /**
      * Switching the map off still suppresses it, coordinates or not — the
      * behaviour the old gate provided and this must not lose.
-     *
-     * @test
      */
+    #[Test]
     public function switching_the_map_off_still_suppresses_it(): void
     {
         $announcement = $this->makeAnnouncement([

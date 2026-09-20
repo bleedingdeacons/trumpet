@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Announcement;
 
+use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 /**
@@ -21,9 +22,7 @@ use Tests\TestCase;
  */
 class AnnouncementVisibilityTest extends TestCase
 {
-    /**
-     * @test
-     */
+    #[Test]
     public function it_is_active_when_no_dates_are_set(): void
     {
         $announcement = $this->makeAnnouncement();
@@ -31,9 +30,7 @@ class AnnouncementVisibilityTest extends TestCase
         $this->assertTrue($announcement->isActive());
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function the_hide_flag_overrides_everything(): void
     {
         $announcement = $this->makeAnnouncement([
@@ -51,9 +48,8 @@ class AnnouncementVisibilityTest extends TestCase
     /**
      * The end date is inclusive: an announcement ending today is still shown
      * today, and only drops out tomorrow.
-     *
-     * @test
      */
+    #[Test]
     public function an_announcement_ending_today_is_still_active(): void
     {
         $announcement = $this->makeAnnouncement([
@@ -63,9 +59,7 @@ class AnnouncementVisibilityTest extends TestCase
         $this->assertTrue($announcement->isActive());
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function an_announcement_that_ended_yesterday_is_not_active(): void
     {
         $announcement = $this->makeAnnouncement([
@@ -75,9 +69,7 @@ class AnnouncementVisibilityTest extends TestCase
         $this->assertFalse($announcement->isActive());
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function an_announcement_with_no_end_date_never_expires(): void
     {
         $announcement = $this->makeAnnouncement([
@@ -90,9 +82,8 @@ class AnnouncementVisibilityTest extends TestCase
     /**
      * The start-display date is inclusive too: an announcement starting today
      * is shown today, not tomorrow.
-     *
-     * @test
      */
+    #[Test]
     public function an_announcement_starting_today_is_ready_to_display(): void
     {
         $announcement = $this->makeAnnouncement([
@@ -103,9 +94,7 @@ class AnnouncementVisibilityTest extends TestCase
         $this->assertTrue($announcement->isActive());
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function an_announcement_starting_tomorrow_is_not_yet_ready(): void
     {
         $announcement = $this->makeAnnouncement([
@@ -119,9 +108,7 @@ class AnnouncementVisibilityTest extends TestCase
         );
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function an_announcement_with_no_start_date_is_ready_immediately(): void
     {
         $announcement = $this->makeAnnouncement();
@@ -132,9 +119,8 @@ class AnnouncementVisibilityTest extends TestCase
     /**
      * A window that has not opened yet takes precedence over an end date that
      * has not passed — both must hold for the announcement to be active.
-     *
-     * @test
      */
+    #[Test]
     public function it_is_inactive_outside_a_future_window(): void
     {
         $announcement = $this->makeAnnouncement([
@@ -145,9 +131,7 @@ class AnnouncementVisibilityTest extends TestCase
         $this->assertFalse($announcement->isActive());
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function it_is_active_inside_the_window(): void
     {
         $announcement = $this->makeAnnouncement([

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Common;
 
+use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 use RuntimeException;
 use Trumpet\Common\DependencyContainer;
@@ -26,9 +27,7 @@ class DependencyContainerTest extends TestCase
         $this->container = new DependencyContainer();
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function it_resolves_a_registered_factory(): void
     {
         $service = new \stdClass();
@@ -37,9 +36,7 @@ class DependencyContainerTest extends TestCase
         $this->assertSame($service, $this->container->get('svc'));
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function it_throws_naming_the_missing_service(): void
     {
         $this->expectException(RuntimeException::class);
@@ -48,9 +45,7 @@ class DependencyContainerTest extends TestCase
         $this->container->get('absent.service');
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function it_returns_the_same_instance_on_every_call(): void
     {
         $this->container->register('svc', static fn (): object => new \stdClass());
@@ -62,9 +57,7 @@ class DependencyContainerTest extends TestCase
         );
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function it_does_not_run_a_factory_until_the_service_is_requested(): void
     {
         $runs = 0;
@@ -82,9 +75,7 @@ class DependencyContainerTest extends TestCase
         $this->assertSame(1, $runs, 'The factory must run exactly once.');
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function the_factory_receives_the_container_so_services_can_depend_on_each_other(): void
     {
         $this->container->register('dependency', static fn (): string => 'inner');
@@ -96,9 +87,7 @@ class DependencyContainerTest extends TestCase
         $this->assertSame('wraps:inner', $this->container->get('consumer'));
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function a_later_registration_replaces_an_earlier_one(): void
     {
         $this->container->register('svc', static fn (): string => 'first');

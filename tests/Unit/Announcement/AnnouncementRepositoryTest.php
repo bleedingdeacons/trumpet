@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Announcement;
 
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
+use function Brain\Monkey\Functions\when;
 use BleedingDeacons\WpMocks\WpState;
-use Brain\Monkey\Functions;
 use Tests\TestCase;
 use Trumpet\Announcement\Announcement;
 use Trumpet\Announcement\AnnouncementRepository;
@@ -19,9 +21,8 @@ use WP_Post;
  * save/update/delete write paths and their WP_Error/failure branches, the
  * status-transition hook, cache clearing, and the field-by-field
  * change-detection used to decide whether to fire the "changed" event.
- *
- * @covers \Trumpet\Announcement\AnnouncementRepository
  */
+#[CoversClass(\Trumpet\Announcement\AnnouncementRepository::class)]
 class AnnouncementRepositoryTest extends TestCase
 {
     protected function setUp(): void
@@ -125,7 +126,7 @@ class AnnouncementRepositoryTest extends TestCase
         $announcement = $this->makeAnnouncement([self::TITLE => 'New'], 'publish', 20);
         // wp-mocks' wp_insert_post() always succeeds, so the WP_Error branch
         // is reached by overriding it for this test only.
-        Functions\when('wp_insert_post')->justReturn(new \WP_Error('insert_failed', 'insert refused'));
+        when('wp_insert_post')->justReturn(new \WP_Error('insert_failed', 'insert refused'));
 
         $this->expectException(AnnouncementException::class);
         $this->repo()->save($announcement);
@@ -210,9 +211,9 @@ class AnnouncementRepositoryTest extends TestCase
     }
 
     /**
-     * @dataProvider changedFields
      * @param array<string, mixed> $overrides
      */
+    #[DataProvider('changedFields')]
     public function testHasChangedDetectsAFieldDifference(array $overrides): void
     {
         $base = [self::TITLE => 'Same', self::BODY => 'Body', self::END_DATE => '01/01/2027'];

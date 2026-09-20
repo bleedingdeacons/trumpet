@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Announcement;
 
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Test;
 use DateTime;
 use Tests\TestCase;
 
@@ -11,12 +13,11 @@ use Tests\TestCase;
  * Cover the Announcement accessors and derived-state helpers not exercised by
  * the parsing/visibility/map suites: HTML body sanitisation, the formatted
  * date getters, getPostDate/isHidden, and every branch of getStatusText.
- *
- * @covers \Trumpet\Announcement\Announcement
  */
+#[CoversClass(\Trumpet\Announcement\Announcement::class)]
 class AnnouncementAccessorsTest extends TestCase
 {
-    /** @test */
+    #[Test]
     public function body_html_passes_through_the_kses_allow_list(): void
     {
         // Exercises sanitizeHtml()'s allowed-tag map for a string body. The test
@@ -31,14 +32,14 @@ class AnnouncementAccessorsTest extends TestCase
         $this->assertStringContainsString('<p', $body);
     }
 
-    /** @test */
+    #[Test]
     public function a_non_string_body_sanitises_to_an_empty_string(): void
     {
         $a = $this->makeAnnouncement([self::BODY => ['not', 'a', 'string']]);
         $this->assertSame('', $a->getBody());
     }
 
-    /** @test */
+    #[Test]
     public function formatted_dates_render_when_set_and_are_blank_when_absent(): void
     {
         $with = $this->makeAnnouncement([
@@ -53,7 +54,7 @@ class AnnouncementAccessorsTest extends TestCase
         $this->assertSame('', $without->getFormattedStartDisplayDate());
     }
 
-    /** @test */
+    #[Test]
     public function post_date_and_formatted_post_date_come_from_the_publish_time(): void
     {
         // get_the_time defaults to 01/01/2026 in the test bootstrap.
@@ -63,7 +64,7 @@ class AnnouncementAccessorsTest extends TestCase
         $this->assertSame('01/01/2026', $a->getFormattedPostDate());
     }
 
-    /** @test */
+    #[Test]
     public function is_hidden_reflects_the_hide_field(): void
     {
         $this->assertTrue($this->makeAnnouncement([self::HIDE => true])->isHidden());
@@ -71,43 +72,42 @@ class AnnouncementAccessorsTest extends TestCase
     }
 
     // ─── getStatusText, branch by branch ─────────────────────────────
-
-    /** @test */
+    #[Test]
     public function status_text_is_review_for_a_pending_post(): void
     {
         $a = $this->makeAnnouncement([self::TITLE => 'T'], 'pending');
         $this->assertSame('Review', $a->getStatusText());
     }
 
-    /** @test */
+    #[Test]
     public function status_text_is_hidden_when_hidden(): void
     {
         $a = $this->makeAnnouncement([self::HIDE => true]);
         $this->assertSame('Hidden', $a->getStatusText());
     }
 
-    /** @test */
+    #[Test]
     public function status_text_is_pending_before_the_start_date(): void
     {
         $a = $this->makeAnnouncement([self::START_DISPLAY => $this->daysFromToday(5)]);
         $this->assertSame('Pending', $a->getStatusText());
     }
 
-    /** @test */
+    #[Test]
     public function status_text_is_active_with_no_end_date(): void
     {
         $a = $this->makeAnnouncement([self::TITLE => 'T']);
         $this->assertSame('Active', $a->getStatusText());
     }
 
-    /** @test */
+    #[Test]
     public function status_text_is_active_before_the_end_date(): void
     {
         $a = $this->makeAnnouncement([self::END_DATE => $this->daysFromToday(5)]);
         $this->assertSame('Active', $a->getStatusText());
     }
 
-    /** @test */
+    #[Test]
     public function status_text_is_expired_after_the_end_date(): void
     {
         $a = $this->makeAnnouncement([self::END_DATE => $this->daysFromToday(-5)]);

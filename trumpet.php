@@ -5,7 +5,7 @@
  * Description: An announcement management plugin.
  * Version: 2.9.17
  * Requires at least: 6.0
- * Requires PHP: 8.1
+ * Requires PHP: 8.4
  * Requires Plugins: unity
  * GitHub Plugin URI: https://github.com/bleedingdeacons/trumpet
  * GitHub Branch: main

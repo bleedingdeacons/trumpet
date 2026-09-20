@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Tests\Unit;
 
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Test;
 use Mockery;
 use Tests\TestCase;
 use ReflectionClass;
@@ -18,9 +20,8 @@ use Unity\Testing\Doubles\FakeContainer;
  * Covers the admin-context paths of the Plugin bootstrap: the is_admin() branch
  * of init() (menu hook + admin/settings resolution) and the standalone
  * render*Page callbacks.
- *
- * @covers \Trumpet\Plugin
  */
+#[CoversClass(\Trumpet\Plugin::class)]
 class PluginAdminTest extends TestCase
 {
     protected function setUp(): void
@@ -38,7 +39,7 @@ class PluginAdminTest extends TestCase
         parent::tearDown();
     }
 
-    /** @test */
+    #[Test]
     public function init_in_admin_registers_the_menu_and_resolves_admin_services(): void
     {
         // Preseed the admin services so init() resolves them without invoking
@@ -55,7 +56,7 @@ class PluginAdminTest extends TestCase
         $this->assertSame($container, Plugin::getContainer());
     }
 
-    /** @test */
+    #[Test]
     public function register_trumpet_menu_wires_the_pages_and_submenus(): void
     {
         // The add_menu_page/add_submenu_page/add_action stubs are no-ops, so
@@ -66,7 +67,7 @@ class PluginAdminTest extends TestCase
         $this->assertTrue(true);
     }
 
-    /** @test */
+    #[Test]
     public function render_menu_page_is_a_no_op(): void
     {
         ob_start();
@@ -74,7 +75,7 @@ class PluginAdminTest extends TestCase
         $this->assertSame('', (string) ob_get_clean());
     }
 
-    /** @test */
+    #[Test]
     public function render_help_page_emits_the_redirect_markup(): void
     {
         ob_start();
