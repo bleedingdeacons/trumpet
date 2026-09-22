@@ -4,10 +4,9 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Announcement;
 
-use PHPUnit\Framework\Attributes\CoversClass;
-use function Brain\Monkey\Functions\when;
-use RuntimeException;
 use BleedingDeacons\WpMocks\WpState;
+use Brain\Monkey\Functions;
+use RuntimeException;
 use Tests\TestCase;
 use Trumpet\Announcement\AnnouncementRepository;
 use Trumpet\Config\TrumpetConfig;
@@ -15,148 +14,139 @@ use Trumpet\Exception\AnnouncementException;
 use Unity\Core\Interfaces\Cache;
 use WP_Post;
 
-/**
+/*
  * Cover the AnnouncementRepository write paths not reached by the main suite:
  * the full updateCustomFields fan-out on a save with every optional field, the
  * update() WP_Error and "changed" branches, and the remaining null-vs-set /
  * multi-value comparisons in hasAnnouncementChanged.
+ *
+ * The repositories here are built on InMemoryUnityCache, declared in
+ * AnnouncementRepositoryTest.php in the same namespace.
  */
-#[CoversClass(\Trumpet\Announcement\AnnouncementRepository::class)]
-class AnnouncementRepositoryWriteTest extends TestCase
+
+covers(AnnouncementRepository::class);
+
+// parent::setUp() clears WpState: the object cache and the seeded posts
+// get_post() reads. Nothing to unset here.
+
+// Seed a post so findById() inside update() can rebuild the original.
+function seedWrittenPost(int $id): void
 {
-    protected function setUp(): void
-    {
-        parent::setUp();
-        // parent::setUp() clears WpState: the object cache and the seeded
-        // posts get_post() reads. Nothing to unset here.
-    }
+    WpState::$posts[$id] = new WP_Post([
+        'ID' => $id,
+        'post_status' => 'publish',
+        'post_type' => TrumpetConfig::ANNOUNCEMENT_POST_TYPE,
+    ]);
+    WpState::$postTypes[$id] = TrumpetConfig::ANNOUNCEMENT_POST_TYPE;
+    WpState::$postStatuses[$id] = 'publish';
+}
 
-    /** Seed a post so findById() inside update() can rebuild the original. */
-    private function seed(int $id): void
-    {
-        WpState::$posts[$id] = new WP_Post([
-            'ID' => $id,
-            'post_status' => 'publish',
-            'post_type' => TrumpetConfig::ANNOUNCEMENT_POST_TYPE,
-        ]);
-        WpState::$postTypes[$id] = TrumpetConfig::ANNOUNCEMENT_POST_TYPE;
-        WpState::$postStatuses[$id] = 'publish';
-    }
+function writeRepository(): AnnouncementRepository
+{
+    return new AnnouncementRepository(new InMemoryUnityCache());
+}
 
-    private function repo(): AnnouncementRepository
-    {
-        return new AnnouncementRepository(new InMemoryUnityCache());
-    }
+/**
+ * A fully populated announcement so every updateCustomFields branch runs.
+ *
+ * @return array<string, mixed>
+ */
+function richWriteFields(): array
+{
+    return [
+        TestCase::TITLE => 'Rich',
+        TestCase::BODY => 'Body',
+        TestCase::END_DATE => '01/01/2027',
+        TestCase::SHOW_MAP => true,
+        TestCase::LOCATION => ['lat' => '51.45', 'lng' => '-2.58', 'address' => 'Bristol'],
+        TrumpetConfig::RELATED_MEETING_FIELD => [7],
+        TestCase::START_DISPLAY => '01/06/2026',
+    ];
+}
 
-    /** A fully populated announcement so every updateCustomFields branch runs. */
-    private function richFields(): array
-    {
-        return [
-            self::TITLE => 'Rich',
-            self::BODY => 'Body',
-            self::END_DATE => '01/01/2027',
-            self::SHOW_MAP => true,
-            self::LOCATION => ['lat' => '51.45', 'lng' => '-2.58', 'address' => 'Bristol'],
-            TrumpetConfig::RELATED_MEETING_FIELD => [7],
-            self::START_DISPLAY => '01/06/2026',
-        ];
-    }
+// ─── save → updateCustomFields fan-out ───────────────────────────
+it('writes every optional custom field on save', function () {
+    $announcement = $this->makeAnnouncement(richWriteFields(), 'publish', 60);
+    WpState::$nextPostId = 61;
 
-    // ─── save → updateCustomFields fan-out ───────────────────────────
+    expect(writeRepository()->save($announcement))->toBeTrue();
+});
 
-    public function testSaveWritesEveryOptionalCustomField(): void
-    {
-        $announcement = $this->makeAnnouncement($this->richFields(), 'publish', 60);
-        WpState::$nextPostId = 61;
-
-        $this->assertTrue($this->repo()->save($announcement));
-    }
-
-    // ─── update: WP_Error + changed branch ───────────────────────────
-
-    public function testUpdateWrapsAWpErrorFromWpUpdatePost(): void
-    {
-        $this->setFields([self::TITLE => 'Orig'], 70);
-        $this->seed(70);
+// ─── update: WP_Error + changed branch ───────────────────────────
+describe('update', function () {
+    it('wraps a WP_Error from wp_update_post', function () {
+        $this->setFields([TestCase::TITLE => 'Orig'], 70);
+        seedWrittenPost(70);
         // wp-mocks' wp_update_post() always succeeds, so the WP_Error branch
         // is reached by overriding it for this test only.
-        when('wp_update_post')->justReturn(new \WP_Error('update_failed', 'update refused'));
+        Functions\when('wp_update_post')->justReturn(new \WP_Error('update_failed', 'update refused'));
 
-        $announcement = $this->makeAnnouncement([self::TITLE => 'Orig'], 'publish', 70);
+        $announcement = $this->makeAnnouncement([TestCase::TITLE => 'Orig'], 'publish', 70);
 
-        $this->expectException(AnnouncementException::class);
-        $this->repo()->update($announcement);
-    }
+        writeRepository()->update($announcement);
+    })->throws(AnnouncementException::class);
 
-    public function testUpdateFiresChangedHookWhenTheTitleDiffers(): void
-    {
+    it('fires the changed hook when the title differs', function () {
         // The announcement being written captures 'After' at construction time.
-        $announcement = $this->makeAnnouncement([self::TITLE => 'After'], 'publish', 71);
+        $announcement = $this->makeAnnouncement([TestCase::TITLE => 'After'], 'publish', 71);
 
         // Re-point the id's fields to 'Before' so the original that findById()
         // rebuilds inside update() differs → hasAnnouncementChanged() is true.
-        $this->setFields([self::TITLE => 'Before'], 71);
-        $this->seed(71);
+        $this->setFields([TestCase::TITLE => 'Before'], 71);
+        seedWrittenPost(71);
 
-        $this->assertTrue($this->repo()->update($announcement));
-    }
+        expect(writeRepository()->update($announcement))->toBeTrue();
+    });
+});
 
-    // ─── hasAnnouncementChanged: remaining branches ──────────────────
-
-    public function testEndDateNullVersusSetCountsAsChanged(): void
-    {
-        $a = $this->makeAnnouncement([self::END_DATE => '01/01/2027'], 'publish', 1);
+// ─── hasAnnouncementChanged: remaining branches ──────────────────
+describe('hasAnnouncementChanged', function () {
+    it('counts an end date null versus set as changed', function () {
+        $a = $this->makeAnnouncement([TestCase::END_DATE => '01/01/2027'], 'publish', 1);
         $b = $this->makeAnnouncement([], 'publish', 2);
-        $this->assertTrue($this->repo()->hasAnnouncementChanged($a, $b));
-    }
+        expect(writeRepository()->hasAnnouncementChanged($a, $b))->toBeTrue();
+    });
 
-    public function testStartDateBothSetButDifferentCountsAsChanged(): void
-    {
-        $a = $this->makeAnnouncement([self::START_DISPLAY => '01/01/2026'], 'publish', 1);
-        $b = $this->makeAnnouncement([self::START_DISPLAY => '02/02/2027'], 'publish', 2);
-        $this->assertTrue($this->repo()->hasAnnouncementChanged($a, $b));
-    }
+    it('counts start dates both set but different as changed', function () {
+        $a = $this->makeAnnouncement([TestCase::START_DISPLAY => '01/01/2026'], 'publish', 1);
+        $b = $this->makeAnnouncement([TestCase::START_DISPLAY => '02/02/2027'], 'publish', 2);
+        expect(writeRepository()->hasAnnouncementChanged($a, $b))->toBeTrue();
+    });
 
-    public function testMeetingCountDifferenceCountsAsChanged(): void
-    {
+    it('counts a meeting count difference as changed', function () {
         $a = $this->makeAnnouncement([TrumpetConfig::RELATED_MEETING_FIELD => [1, 2]], 'publish', 1);
         $b = $this->makeAnnouncement([TrumpetConfig::RELATED_MEETING_FIELD => [1, 2, 3]], 'publish', 2);
-        $this->assertTrue($this->repo()->hasAnnouncementChanged($a, $b));
-    }
+        expect(writeRepository()->hasAnnouncementChanged($a, $b))->toBeTrue();
+    });
 
-    public function testMeetingContentDifferenceCountsAsChanged(): void
-    {
+    it('counts a meeting content difference as changed', function () {
         $a = $this->makeAnnouncement([TrumpetConfig::RELATED_MEETING_FIELD => [1, 2]], 'publish', 1);
         $b = $this->makeAnnouncement([TrumpetConfig::RELATED_MEETING_FIELD => [1, 3]], 'publish', 2);
-        $this->assertTrue($this->repo()->hasAnnouncementChanged($a, $b));
-    }
+        expect(writeRepository()->hasAnnouncementChanged($a, $b))->toBeTrue();
+    });
 
-    public function testIdenticalMeetingListsAreNotAChange(): void
-    {
+    it('does not count identical meeting lists as a change', function () {
         // Same members in a different order → sort()+serialize() match, so this
         // comparison passes through without reporting a change.
-        $fields = [self::TITLE => 'Same'];
+        $fields = [TestCase::TITLE => 'Same'];
         $a = $this->makeAnnouncement($fields + [TrumpetConfig::RELATED_MEETING_FIELD => [1, 2]], 'publish', 1);
         $b = $this->makeAnnouncement($fields + [TrumpetConfig::RELATED_MEETING_FIELD => [2, 1]], 'publish', 2);
-        $this->assertFalse($this->repo()->hasAnnouncementChanged($a, $b));
-    }
+        expect(writeRepository()->hasAnnouncementChanged($a, $b))->toBeFalse();
+    });
+});
 
-    // ─── error paths: cache failure is wrapped ───────────────────────
-
-    public function testFindAllWrapsAnUnexpectedCacheError(): void
-    {
+// ─── error paths: cache failure is wrapped ───────────────────────
+describe('cache failures', function () {
+    it('wraps an unexpected cache error in findAll', function () {
         $repo = new AnnouncementRepository(new ThrowingCache());
-        $this->expectException(AnnouncementException::class);
         $repo->findAll();
-    }
+    })->throws(AnnouncementException::class);
 
-    public function testFindActiveWrapsAnUnexpectedCacheError(): void
-    {
+    it('wraps an unexpected cache error in findActive', function () {
         $repo = new AnnouncementRepository(new ThrowingCache());
-        $this->expectException(AnnouncementException::class);
         $repo->findActive();
-    }
-}
+    })->throws(AnnouncementException::class);
+});
 
 /** A Cache whose reads blow up, to drive the repositories' catch blocks. */
 final class ThrowingCache implements Cache

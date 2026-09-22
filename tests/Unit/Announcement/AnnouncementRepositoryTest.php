@@ -4,10 +4,8 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Announcement;
 
-use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\Attributes\DataProvider;
-use function Brain\Monkey\Functions\when;
 use BleedingDeacons\WpMocks\WpState;
+use Brain\Monkey\Functions;
 use Tests\TestCase;
 use Trumpet\Announcement\Announcement;
 use Trumpet\Announcement\AnnouncementRepository;
@@ -16,238 +14,212 @@ use Trumpet\Exception\AnnouncementException;
 use Unity\Core\Interfaces\Cache;
 use WP_Post;
 
-/**
+/*
  * Cover AnnouncementRepository: the cached findAll, findById/findActive, the
  * save/update/delete write paths and their WP_Error/failure branches, the
  * status-transition hook, cache clearing, and the field-by-field
  * change-detection used to decide whether to fire the "changed" event.
  */
-#[CoversClass(\Trumpet\Announcement\AnnouncementRepository::class)]
-class AnnouncementRepositoryTest extends TestCase
+
+covers(AnnouncementRepository::class);
+
+// parent::setUp() clears WpState: the object cache, the seeded posts and
+// everything get_post()/get_posts() read. Nothing to unset here.
+
+function cachedRepository(): AnnouncementRepository
 {
-    protected function setUp(): void
-    {
-        parent::setUp();
-        // parent::setUp() clears WpState: the object cache, the seeded posts
-        // and everything get_post()/get_posts() read. Nothing to unset here.
-    }
+    return new AnnouncementRepository(new InMemoryUnityCache());
+}
 
-    /**
-     * Seed a post so get_post()/get_post_type() resolve it, and hand it back
-     * for the tests that also need the object itself.
-     */
-    private function seed(int $id, string $status = 'publish'): WP_Post
-    {
-        $post = $this->post($id, $status);
-        WpState::$posts[$id] = $post;
-        WpState::$postTypes[$id] = TrumpetConfig::ANNOUNCEMENT_POST_TYPE;
-        WpState::$postStatuses[$id] = $status;
+function repositoryPost(int $id, string $status = 'publish'): WP_Post
+{
+    return new WP_Post([
+        'ID' => $id,
+        'post_status' => $status,
+        'post_type' => TrumpetConfig::ANNOUNCEMENT_POST_TYPE,
+    ]);
+}
 
-        return $post;
-    }
+// Seed a post so get_post()/get_post_type() resolve it, and hand it back
+// for the tests that also need the object itself.
+function seedRepositoryPost(int $id, string $status = 'publish'): WP_Post
+{
+    $post = repositoryPost($id, $status);
+    WpState::$posts[$id] = $post;
+    WpState::$postTypes[$id] = TrumpetConfig::ANNOUNCEMENT_POST_TYPE;
+    WpState::$postStatuses[$id] = $status;
 
-    private function repo(): AnnouncementRepository
-    {
-        return new AnnouncementRepository(new InMemoryUnityCache());
-    }
+    return $post;
+}
 
-    private function post(int $id, string $status = 'publish'): WP_Post
-    {
-        return new WP_Post([
-            'ID' => $id,
-            'post_status' => $status,
-            'post_type' => TrumpetConfig::ANNOUNCEMENT_POST_TYPE,
-        ]);
-    }
+// ─── findAll (cache miss + hit) ──────────────────────────────────
+it('queries findAll then serves it from cache', function () {
+    $this->setFields([TestCase::TITLE => 'Hello'], 10);
+    WpState::$queryPosts = [seedRepositoryPost(10)];
 
-    // ─── findAll (cache miss + hit) ──────────────────────────────────
+    $repo = cachedRepository();
+    $first = $repo->findAll();
+    expect($first)->toHaveCount(1)
+        ->and($first[0])->toBeInstanceOf(Announcement::class);
 
-    public function testFindAllQueriesThenServesFromCache(): void
-    {
-        $this->setFields([self::TITLE => 'Hello'], 10);
-        WpState::$queryPosts = [$this->seed(10)];
+    // Second call is served from the transient cache (get_posts emptied).
+    WpState::$queryPosts = [];
+    $second = $repo->findAll();
+    expect($second)->toHaveCount(1);
+});
 
-        $repo = $this->repo();
-        $first = $repo->findAll();
-        $this->assertCount(1, $first);
-        $this->assertInstanceOf(Announcement::class, $first[0]);
+// ─── findById ────────────────────────────────────────────────────
+describe('findById', function () {
+    it('returns an announcement', function () {
+        $this->setFields([TestCase::TITLE => 'One'], 5);
+        seedRepositoryPost(5);
 
-        // Second call is served from the transient cache (get_posts emptied).
-        WpState::$queryPosts = [];
-        $second = $repo->findAll();
-        $this->assertCount(1, $second);
-    }
+        expect(cachedRepository()->findById(5))->toBeInstanceOf(Announcement::class);
+    });
 
-    // ─── findById ────────────────────────────────────────────────────
-
-    public function testFindByIdReturnsAnAnnouncement(): void
-    {
-        $this->setFields([self::TITLE => 'One'], 5);
-        $this->seed(5);
-
-        $this->assertInstanceOf(Announcement::class, $this->repo()->findById(5));
-    }
-
-    public function testFindByIdReturnsNullForMissingOrWrongType(): void
-    {
+    it('returns null for a missing post or the wrong type', function () {
         // Nothing seeded, so get_post() answers null.
-        $this->assertNull($this->repo()->findById(99));
+        expect(cachedRepository()->findById(99))->toBeNull();
 
-        $post = $this->seed(6);
+        $post = seedRepositoryPost(6);
         $post->post_type = 'page';
         WpState::$postTypes[6] = 'page';
-        $this->assertNull($this->repo()->findById(6));
-    }
+        expect(cachedRepository()->findById(6))->toBeNull();
+    });
+});
 
-    // ─── findActive ──────────────────────────────────────────────────
+// ─── findActive ──────────────────────────────────────────────────
+it('filters hidden and expired announcements out of findActive', function () {
+    $this->setFields([TestCase::TITLE => 'Visible'], 1);
+    $this->setFields([TestCase::TITLE => 'Hidden', TestCase::HIDE => true], 2);
+    WpState::$queryPosts = [seedRepositoryPost(1), seedRepositoryPost(2)];
 
-    public function testFindActiveFiltersHiddenAndExpired(): void
-    {
-        $this->setFields([self::TITLE => 'Visible'], 1);
-        $this->setFields([self::TITLE => 'Hidden', self::HIDE => true], 2);
-        WpState::$queryPosts = [$this->seed(1), $this->seed(2)];
+    $active = cachedRepository()->findActive();
+    expect($active)->toHaveCount(1);
+});
 
-        $active = $this->repo()->findActive();
-        $this->assertCount(1, $active);
-    }
-
-    // ─── save ────────────────────────────────────────────────────────
-
-    public function testSavePersistsAndClearsCache(): void
-    {
-        $announcement = $this->makeAnnouncement([self::TITLE => 'New'], 'publish', 20);
+// ─── save ────────────────────────────────────────────────────────
+describe('save', function () {
+    it('persists and clears the cache', function () {
+        $announcement = $this->makeAnnouncement([TestCase::TITLE => 'New'], 'publish', 20);
         WpState::$nextPostId = 21;
 
-        $this->assertTrue($this->repo()->save($announcement));
-    }
+        expect(cachedRepository()->save($announcement))->toBeTrue();
+    });
 
-    public function testSaveWrapsAWpErrorInAnAnnouncementException(): void
-    {
-        $announcement = $this->makeAnnouncement([self::TITLE => 'New'], 'publish', 20);
+    it('wraps a WP_Error in an AnnouncementException', function () {
+        $announcement = $this->makeAnnouncement([TestCase::TITLE => 'New'], 'publish', 20);
         // wp-mocks' wp_insert_post() always succeeds, so the WP_Error branch
         // is reached by overriding it for this test only.
-        when('wp_insert_post')->justReturn(new \WP_Error('insert_failed', 'insert refused'));
+        Functions\when('wp_insert_post')->justReturn(new \WP_Error('insert_failed', 'insert refused'));
 
-        $this->expectException(AnnouncementException::class);
-        $this->repo()->save($announcement);
-    }
+        cachedRepository()->save($announcement);
+    })->throws(AnnouncementException::class);
+});
 
-    // ─── update ──────────────────────────────────────────────────────
-
-    public function testUpdatePersistsWhenTheOriginalExists(): void
-    {
+// ─── update ──────────────────────────────────────────────────────
+describe('update', function () {
+    it('persists when the original exists', function () {
         // findById inside update() reads get_post; return the same post so the
         // original loads, then the update proceeds.
-        $this->setFields([self::TITLE => 'Updated'], 30);
-        $this->seed(30);
-        $announcement = $this->makeAnnouncement([self::TITLE => 'Updated'], 'publish', 30);
+        $this->setFields([TestCase::TITLE => 'Updated'], 30);
+        seedRepositoryPost(30);
+        $announcement = $this->makeAnnouncement([TestCase::TITLE => 'Updated'], 'publish', 30);
 
-        $this->assertTrue($this->repo()->update($announcement));
-    }
+        expect(cachedRepository()->update($announcement))->toBeTrue();
+    });
 
-    public function testUpdateThrowsWhenTheOriginalIsMissing(): void
-    {
+    it('throws when the original is missing', function () {
         // Nothing seeded, so get_post() answers null.
-        $announcement = $this->makeAnnouncement([self::TITLE => 'X'], 'publish', 40);
+        $announcement = $this->makeAnnouncement([TestCase::TITLE => 'X'], 'publish', 40);
 
-        $this->expectException(AnnouncementException::class);
-        $this->repo()->update($announcement);
-    }
+        cachedRepository()->update($announcement);
+    })->throws(AnnouncementException::class);
+});
 
-    // ─── delete ──────────────────────────────────────────────────────
+// ─── delete ──────────────────────────────────────────────────────
+describe('delete', function () {
+    it('succeeds', function () {
+        seedRepositoryPost(7);
+        expect(cachedRepository()->delete(7))->toBeTrue();
+    });
 
-    public function testDeleteSucceeds(): void
-    {
-        $this->seed(7);
-        $this->assertTrue($this->repo()->delete(7));
-    }
-
-    public function testDeleteThrowsWhenWpDeleteFails(): void
-    {
+    it('throws when wp_delete_post fails', function () {
         // wp_delete_post() reports failure by returning false, which it does
-        // for a post that is not there � so simply do not seed one.
-        $this->expectException(AnnouncementException::class);
-        $this->repo()->delete(7);
-    }
+        // for a post that is not there — so simply do not seed one.
+        cachedRepository()->delete(7);
+    })->throws(AnnouncementException::class);
+});
 
-    // ─── clearCache + status transition ──────────────────────────────
-
-    public function testClearCacheSkipsForANonAnnouncementPost(): void
-    {
+// ─── clearCache + status transition ──────────────────────────────
+describe('clearCache and status transitions', function () {
+    it('skips clearCache for a non-announcement post', function () {
         WpState::$postTypes[123] = 'page';
         // Should return early without touching the cache; simply must not error.
-        $this->repo()->clearCache(123);
-        $this->assertTrue(true);
-    }
+        expect(fn () => cachedRepository()->clearCache(123))->not->toThrow(\Throwable::class);
+    });
 
-    public function testStatusTransitionIgnoresOtherPostTypes(): void
-    {
-        $post = $this->post(1);
+    it('ignores status transitions on other post types', function () {
+        $post = repositoryPost(1);
         $post->post_type = 'page';
-        $this->repo()->handlePostStatusTransition('publish', 'draft', $post);
-        $this->assertTrue(true);
-    }
+        cachedRepository()->handlePostStatusTransition('publish', 'draft', $post);
 
-    public function testStatusTransitionFiresApprovalAndReviewEvents(): void
-    {
-        $this->setFields([self::TITLE => 'T'], 50);
-        $post = $this->post(50);
+        $this->assertActionFiredTimes('announcement_status_changed', 0);
+    });
+
+    it('fires the approval and review events on a status transition', function () {
+        $this->setFields([TestCase::TITLE => 'T'], 50);
+        $post = repositoryPost(50);
         $post->post_type = TrumpetConfig::ANNOUNCEMENT_POST_TYPE;
 
-        $this->repo()->handlePostStatusTransition('publish', 'pending', $post); // approved
-        $this->repo()->handlePostStatusTransition('pending', 'draft', $post);   // in review
-        $this->assertTrue(true);
-    }
+        cachedRepository()->handlePostStatusTransition('publish', 'pending', $post); // approved
+        cachedRepository()->handlePostStatusTransition('pending', 'draft', $post);   // in review
 
-    // ─── hasAnnouncementChanged ──────────────────────────────────────
+        $this->assertActionFired('announcement_approved');
+        $this->assertActionFired('announcement_in_review');
+    });
+});
 
-    public function testHasChangedIsFalseForIdenticalAnnouncements(): void
-    {
-        $fields = [self::TITLE => 'Same', self::BODY => 'Body', self::END_DATE => '01/01/2027'];
+// ─── hasAnnouncementChanged ──────────────────────────────────────
+describe('hasAnnouncementChanged', function () {
+    it('is false for identical announcements', function () {
+        $fields = [TestCase::TITLE => 'Same', TestCase::BODY => 'Body', TestCase::END_DATE => '01/01/2027'];
         $a = $this->makeAnnouncement($fields, 'publish', 1);
         $b = $this->makeAnnouncement($fields, 'publish', 2);
 
-        $this->assertFalse($this->repo()->hasAnnouncementChanged($a, $b));
-    }
+        expect(cachedRepository()->hasAnnouncementChanged($a, $b))->toBeFalse();
+    });
 
-    /**
-     * @param array<string, mixed> $overrides
-     */
-    #[DataProvider('changedFields')]
-    public function testHasChangedDetectsAFieldDifference(array $overrides): void
-    {
-        $base = [self::TITLE => 'Same', self::BODY => 'Body', self::END_DATE => '01/01/2027'];
+    it('detects a field difference', function (array $overrides) {
+        $base = [TestCase::TITLE => 'Same', TestCase::BODY => 'Body', TestCase::END_DATE => '01/01/2027'];
         $a = $this->makeAnnouncement($base, 'publish', 1);
         $b = $this->makeAnnouncement(array_merge($base, $overrides), 'publish', 2);
 
-        $this->assertTrue($this->repo()->hasAnnouncementChanged($a, $b));
-    }
+        expect(cachedRepository()->hasAnnouncementChanged($a, $b))->toBeTrue();
+    })->with([
+        'title'     => [[TrumpetConfig::TITLE_FIELD => 'Different']],
+        'body'      => [[TrumpetConfig::BODY_FIELD => 'Different body']],
+        'hidden'    => [[TrumpetConfig::HIDE_FIELD => true]],
+        'show map'  => [[TrumpetConfig::SHOW_MAP_FIELD => true]],
+        'end date'  => [[TrumpetConfig::END_DATE_FIELD => '02/02/2028']],
+        'location'  => [[TrumpetConfig::LOCATION_FIELD => ['lat' => '51.5', 'lng' => '-0.1', 'address' => 'X']]],
+        'meeting'   => [[TrumpetConfig::RELATED_MEETING_FIELD => [1, 2]]],
+        'start date' => [[TrumpetConfig::START_DISPLAY_FIELD => '03/03/2026']],
+    ]);
 
-    /** @return array<string, array{0: array<string, mixed>}> */
-    public static function changedFields(): array
-    {
-        return [
-            'title'     => [[TrumpetConfig::TITLE_FIELD => 'Different']],
-            'body'      => [[TrumpetConfig::BODY_FIELD => 'Different body']],
-            'hidden'    => [[TrumpetConfig::HIDE_FIELD => true]],
-            'show map'  => [[TrumpetConfig::SHOW_MAP_FIELD => true]],
-            'end date'  => [[TrumpetConfig::END_DATE_FIELD => '02/02/2028']],
-            'location'  => [[TrumpetConfig::LOCATION_FIELD => ['lat' => '51.5', 'lng' => '-0.1', 'address' => 'X']]],
-            'meeting'   => [[TrumpetConfig::RELATED_MEETING_FIELD => [1, 2]]],
-            'start date' => [[TrumpetConfig::START_DISPLAY_FIELD => '03/03/2026']],
-        ];
-    }
+    it('detects a status difference', function () {
+        $a = $this->makeAnnouncement([TestCase::TITLE => 'Same'], 'publish', 1);
+        $b = $this->makeAnnouncement([TestCase::TITLE => 'Same'], 'pending', 2);
 
-    public function testHasChangedDetectsAStatusDifference(): void
-    {
-        $a = $this->makeAnnouncement([self::TITLE => 'Same'], 'publish', 1);
-        $b = $this->makeAnnouncement([self::TITLE => 'Same'], 'pending', 2);
+        expect(cachedRepository()->hasAnnouncementChanged($a, $b))->toBeTrue();
+    });
+});
 
-        $this->assertTrue($this->repo()->hasAnnouncementChanged($a, $b));
-    }
-}
-
-/** In-memory implementation of Unity's Cache contract for the repository tests. */
+/**
+ * In-memory implementation of Unity's Cache contract for the repository tests.
+ *
+ * AnnouncementRepositoryWriteTest.php, in the same namespace, uses it too.
+ */
 final class InMemoryUnityCache implements Cache
 {
     /** @var array<string, mixed> */

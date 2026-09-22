@@ -4,13 +4,10 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Announcement;
 
-use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\Attributes\Test;
-use Mockery\MockInterface;
-use function Brain\Monkey\Functions\when;
 use BleedingDeacons\WpMocks\WpState;
+use Brain\Monkey\Functions;
 use Mockery;
-use Tests\TestCase;
+use Mockery\MockInterface;
 use ReflectionClass;
 use RuntimeException;
 use Trumpet\Announcement\Announcement;
@@ -19,117 +16,108 @@ use Trumpet\Announcement\AnnouncementRepositoryInterface;
 use Trumpet\Config\TrumpetConfig;
 use WP_Post;
 
-/**
+/*
  * Cover AnnouncementChangeTracker: capturing the pre-save snapshot on
  * acf/save_post, and the post-save comparison that fires announcement_changed
  * (and syncs the post title) only when the repository reports a real change.
  */
-#[CoversClass(\Trumpet\Announcement\AnnouncementChangeTracker::class)]
-class AnnouncementChangeTrackerTest extends TestCase
+
+covers(AnnouncementChangeTracker::class);
+
+function resetTrackedOriginal(): void
 {
+    (new ReflectionClass(AnnouncementChangeTracker::class))
+        ->getProperty('originalAnnouncement')->setValue(null, null);
+}
+
+function trackedOriginal(): ?Announcement
+{
+    return (new ReflectionClass(AnnouncementChangeTracker::class))
+        ->getProperty('originalAnnouncement')->getValue();
+}
+
+function seedTrackedOriginal(Announcement $a): void
+{
+    (new ReflectionClass(AnnouncementChangeTracker::class))
+        ->getProperty('originalAnnouncement')->setValue(null, $a);
+}
+
+function titledAnnouncement(string $title): Announcement
+{
+    $a = Mockery::mock(Announcement::class);
+    $a->shouldReceive('getTitle')->andReturn($title);
+    return $a;
+}
+
+beforeEach(function () {
+    resetTrackedOriginal();
     /** @var AnnouncementRepositoryInterface&MockInterface */
-    private $repo;
-    private AnnouncementChangeTracker $tracker;
+    $this->repo = Mockery::mock(AnnouncementRepositoryInterface::class);
+    $this->tracker = new AnnouncementChangeTracker($this->repo);
+});
 
-    protected function setUp(): void
-    {
-        parent::setUp();
-        $this->resetOriginal();
-        $this->repo = Mockery::mock(AnnouncementRepositoryInterface::class);
-        $this->tracker = new AnnouncementChangeTracker($this->repo);
-    }
+afterEach(function () {
+    resetTrackedOriginal();
+});
 
-    protected function tearDown(): void
-    {
-        $this->resetOriginal();
-        parent::tearDown();
-    }
-
-    private function resetOriginal(): void
-    {
-        (new ReflectionClass(AnnouncementChangeTracker::class))
-            ->getProperty('originalAnnouncement')->setValue(null, null);
-    }
-
-    private function original(): ?Announcement
-    {
-        return (new ReflectionClass(AnnouncementChangeTracker::class))
-            ->getProperty('originalAnnouncement')->getValue();
-    }
-
-    private function announcement(string $title): Announcement
-    {
-        $a = Mockery::mock(Announcement::class);
-        $a->shouldReceive('getTitle')->andReturn($title);
-        return $a;
-    }
-
-    // ─── captureOriginalAnnouncement ─────────────────────────────────
-    #[Test]
-    public function capture_ignores_a_non_announcement_post(): void
-    {
-        when('get_post_type')->justReturn('page');
+// ─── captureOriginalAnnouncement ─────────────────────────────────
+describe('captureOriginalAnnouncement', function () {
+    it('ignores a non-announcement post', function () {
+        Functions\when('get_post_type')->justReturn('page');
         $this->tracker->captureOriginalAnnouncement(1);
-        $this->assertNull($this->original());
-    }
+        expect(trackedOriginal())->toBeNull();
+    });
 
-    #[Test]
-    public function capture_stores_the_snapshot_for_an_announcement(): void
-    {
-        when('get_post_type')->justReturn(TrumpetConfig::ANNOUNCEMENT_POST_TYPE);
-        $snapshot = $this->announcement('Before');
+    it('stores the snapshot for an announcement', function () {
+        Functions\when('get_post_type')->justReturn(TrumpetConfig::ANNOUNCEMENT_POST_TYPE);
+        $snapshot = titledAnnouncement('Before');
         $this->repo->shouldReceive('findById')->with(5)->andReturn($snapshot);
 
         $this->tracker->captureOriginalAnnouncement(5);
-        $this->assertSame($snapshot, $this->original());
-    }
+        expect(trackedOriginal())->toBe($snapshot);
+    });
 
-    #[Test]
-    public function capture_swallows_a_repository_error(): void
-    {
-        when('get_post_type')->justReturn(TrumpetConfig::ANNOUNCEMENT_POST_TYPE);
+    it('swallows a repository error', function () {
+        Functions\when('get_post_type')->justReturn(TrumpetConfig::ANNOUNCEMENT_POST_TYPE);
         $this->repo->shouldReceive('findById')->andThrow(new RuntimeException('boom'));
 
         $this->tracker->captureOriginalAnnouncement(5);
-        $this->assertNull($this->original());
-    }
+        expect(trackedOriginal())->toBeNull();
+    });
+});
 
-    // ─── checkForChanges ─────────────────────────────────────────────
-    #[Test]
-    public function check_ignores_a_non_announcement_post(): void
-    {
-        when('get_post_type')->justReturn('page');
+// ─── checkForChanges ─────────────────────────────────────────────
+describe('checkForChanges', function () {
+    it('ignores a non-announcement post', function () {
+        Functions\when('get_post_type')->justReturn('page');
+        // The type check comes first, so the repository is never consulted.
+        $this->repo->shouldNotReceive('findById');
         $this->tracker->checkForChanges(1);
-        $this->assertTrue(true);
-    }
+    });
 
-    #[Test]
-    public function check_returns_early_when_no_snapshot_was_captured(): void
-    {
-        when('get_post_type')->justReturn(TrumpetConfig::ANNOUNCEMENT_POST_TYPE);
+    it('returns early when no snapshot was captured', function () {
+        Functions\when('get_post_type')->justReturn(TrumpetConfig::ANNOUNCEMENT_POST_TYPE);
+        // With nothing to compare against, the updated announcement is never
+        // fetched.
+        $this->repo->shouldNotReceive('findById');
         $this->tracker->checkForChanges(5);
-        $this->assertTrue(true);
-    }
+    });
 
-    #[Test]
-    public function check_returns_when_the_updated_announcement_cannot_be_fetched(): void
-    {
-        when('get_post_type')->justReturn(TrumpetConfig::ANNOUNCEMENT_POST_TYPE);
-        $this->seedOriginal($this->announcement('Before'));
+    it('returns when the updated announcement cannot be fetched', function () {
+        Functions\when('get_post_type')->justReturn(TrumpetConfig::ANNOUNCEMENT_POST_TYPE);
+        seedTrackedOriginal(titledAnnouncement('Before'));
         $this->repo->shouldReceive('findById')->with(5)->andReturn(null);
 
         $this->tracker->checkForChanges(5);
         // Snapshot is left in place (only cleared on a completed comparison).
-        $this->assertNotNull($this->original());
-    }
+        expect(trackedOriginal())->not->toBeNull();
+    });
 
-    #[Test]
-    public function check_fires_the_changed_hook_and_syncs_the_title(): void
-    {
-        when('get_post_type')->justReturn(TrumpetConfig::ANNOUNCEMENT_POST_TYPE);
-        $this->seedOriginal($this->announcement('Before'));
+    it('fires the changed hook and syncs the title', function () {
+        Functions\when('get_post_type')->justReturn(TrumpetConfig::ANNOUNCEMENT_POST_TYPE);
+        seedTrackedOriginal(titledAnnouncement('Before'));
 
-        $updated = $this->announcement('After');
+        $updated = titledAnnouncement('After');
         $this->repo->shouldReceive('findById')->with(5)->andReturn($updated);
         $this->repo->shouldReceive('hasAnnouncementChanged')->andReturn(true);
 
@@ -139,26 +127,18 @@ class AnnouncementChangeTrackerTest extends TestCase
 
         $this->tracker->checkForChanges(5);
 
-        $this->assertNull($this->original());
-        $this->assertSame('After', WpState::$updatedPosts[0]['post_title'] ?? null);
-    }
+        expect(trackedOriginal())->toBeNull()
+            ->and(WpState::$updatedPosts[0]['post_title'] ?? null)->toBe('After');
+    });
 
-    #[Test]
-    public function check_clears_the_snapshot_when_nothing_changed(): void
-    {
-        when('get_post_type')->justReturn(TrumpetConfig::ANNOUNCEMENT_POST_TYPE);
-        $this->seedOriginal($this->announcement('Before'));
+    it('clears the snapshot when nothing changed', function () {
+        Functions\when('get_post_type')->justReturn(TrumpetConfig::ANNOUNCEMENT_POST_TYPE);
+        seedTrackedOriginal(titledAnnouncement('Before'));
 
-        $this->repo->shouldReceive('findById')->with(5)->andReturn($this->announcement('Before'));
+        $this->repo->shouldReceive('findById')->with(5)->andReturn(titledAnnouncement('Before'));
         $this->repo->shouldReceive('hasAnnouncementChanged')->andReturn(false);
 
         $this->tracker->checkForChanges(5);
-        $this->assertNull($this->original());
-    }
-
-    private function seedOriginal(Announcement $a): void
-    {
-        (new ReflectionClass(AnnouncementChangeTracker::class))
-            ->getProperty('originalAnnouncement')->setValue(null, $a);
-    }
-}
+        expect(trackedOriginal())->toBeNull();
+    });
+});

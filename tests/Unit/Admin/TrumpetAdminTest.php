@@ -4,11 +4,8 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Admin;
 
-use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\Attributes\Test;
-use PHPUnit\Framework\Attributes\DataProvider;
-use function Brain\Monkey\Functions\when;
 use BleedingDeacons\WpMocks\WpState;
+use Brain\Monkey\Functions;
 use DateTime;
 use Exception;
 use Mockery;
@@ -21,7 +18,7 @@ use WP_Post;
 use WP_Query;
 use WP_Screen;
 
-/**
+/*
  * Tests for the announcement list-table admin.
  *
  * src/Trumpet/Admin was excluded from the coverage source set until now, on the
@@ -59,67 +56,78 @@ use WP_Screen;
  *     four catch blocks in this class are covered, two through the manager mock
  *     and two by aliasing get_posts()/update_post_meta() to throw.
  */
-#[CoversClass(\Trumpet\Admin\TrumpetAdmin::class)]
-class TrumpetAdminTest extends TestCase
+
+covers(TrumpetAdmin::class);
+
+// An offset from today as d/m/Y — the format Trumpet's date fields use.
+function adminOffsetDate(int $days): string
 {
+    return (new \DateTimeImmutable())->modify(sprintf('%+d days', $days))->format('d/m/Y');
+}
+
+function adminSortMeta(string $key, int $postId = TestCase::POST_ID): string
+{
+    return (string) (WpState::$postMeta[$postId][$key] ?? '');
+}
+
+function onAnnouncementList(): void
+{
+    $GLOBALS['pagenow'] = 'edit.php';
+    $GLOBALS['post_type'] = TrumpetConfig::ANNOUNCEMENT_POST_TYPE;
+}
+
+// Everything Plugin's logger recorded, as one searchable string.
+function adminLoggedErrors(): string
+{
+    return implode("\n", array_map(
+        static fn (array $entry): string => (string) ($entry[2] ?? ''),
+        array_filter(WpState::$logs, static fn (array $entry): bool => ($entry[1] ?? '') === 'error')
+    ));
+}
+
+beforeEach(function () {
     /** @var AnnouncementManager&Mockery\MockInterface */
-    private $manager;
+    $this->manager = Mockery::mock(AnnouncementManager::class);
 
     /** @var AnnouncementRepositoryInterface&Mockery\MockInterface */
-    private $repository;
+    $this->repository = Mockery::mock(AnnouncementRepositoryInterface::class);
 
-    private ?TrumpetAdmin $admin = null;
+    $this->adminInstance = null;
 
-    protected function setUp(): void
-    {
-        parent::setUp();
+    // Built on demand rather than in beforeEach(), because the constructor is
+    // itself under test: the not-in-admin case needs to be the first
+    // construction in its test, with an empty hook store behind it.
+    $this->admin = fn (): TrumpetAdmin
+        => $this->adminInstance ??= new TrumpetAdmin($this->manager, $this->repository);
 
-        $this->manager = Mockery::mock(AnnouncementManager::class);
-        $this->repository = Mockery::mock(AnnouncementRepositoryInterface::class);
-        $this->admin = null;
-    }
+    // Render one list-table column for the announcement under test.
+    $this->column = fn (string $column, int $postId = TestCase::POST_ID): string => captureOutput(
+        fn () => ($this->admin)()->displayCustomColumnContent($column, $postId)
+    );
 
-    protected function tearDown(): void
-    {
-        unset($GLOBALS['pagenow'], $GLOBALS['post_type']);
-
-        parent::tearDown();
-    }
-
-    /**
-     * Built on demand rather than in setUp(), because the constructor is itself
-     * under test: the not-in-admin case needs to be the first construction in
-     * its test, with an empty hook store behind it.
-     */
-    private function admin(): TrumpetAdmin
-    {
-        return $this->admin ??= new TrumpetAdmin($this->manager, $this->repository);
-    }
-
-    /** Capture what a callback prints. */
-    private function capture(callable $fn): string
-    {
-        ob_start();
-        try {
-            $fn();
-        } finally {
-            $html = (string) ob_get_clean();
+    // Seed published announcements that get_posts() will return, each with its
+    // own ACF field values.
+    //
+    // @param array<int, array<string, mixed>> $announcements Post id => fields
+    $this->seedAnnouncements = function (array $announcements): void {
+        foreach ($announcements as $postId => $fields) {
+            WpState::$queryPosts[] = WpState::addPost($postId, [
+                'post_type' => TrumpetConfig::ANNOUNCEMENT_POST_TYPE,
+                'post_status' => 'publish',
+            ]);
+            $this->setFields($fields, $postId);
         }
+    };
+});
 
-        return $html;
-    }
+afterEach(function () {
+    unset($GLOBALS['pagenow'], $GLOBALS['post_type']);
+});
 
-    /** An offset from today as d/m/Y — the format Trumpet's date fields use. */
-    private static function offsetDate(int $days): string
-    {
-        return (new \DateTimeImmutable())->modify(sprintf('%+d days', $days))->format('d/m/Y');
-    }
-
-    // ── registration ──────────────────────────────────────────────────
-    #[Test]
-    public function the_constructor_registers_every_admin_hook(): void
-    {
-        $this->admin();
+// ── registration ──────────────────────────────────────────────────
+describe('registration', function () {
+    it('registers every admin hook in the constructor', function () {
+        ($this->admin)();
 
         foreach (
             [
@@ -143,15 +151,11 @@ class TrumpetAdminTest extends TestCase
         ) {
             $this->assertActionAdded($action, false, 'expected ' . $action . ' to be hooked');
         }
-    }
+    });
 
-    /**
-     * The constructor bails before assigning its dependencies, so a front-end
-     * request must not leave any of these hooks behind.
-     */
-    #[Test]
-    public function nothing_is_hooked_outside_the_admin(): void
-    {
+    // The constructor bails before assigning its dependencies, so a front-end
+    // request must not leave any of these hooks behind.
+    it('hooks nothing outside the admin', function () {
         WpState::$isAdmin = false;
 
         new TrumpetAdmin($this->manager, $this->repository);
@@ -159,502 +163,409 @@ class TrumpetAdminTest extends TestCase
         $this->assertFilterNotAdded('post_row_actions');
         $this->assertActionNotAdded('admin_notices');
         $this->assertActionNotAdded('acf/save_post');
-    }
+    });
+});
 
-    // ── list-table columns ────────────────────────────────────────────
-    /**
-     * The date column is pulled out and re-appended so the announcement
-     * columns sit in front of it rather than after it.
-     */
-    #[Test]
-    public function the_announcement_columns_are_inserted_ahead_of_the_date_column(): void
-    {
+// ── list-table columns ────────────────────────────────────────────
+describe('list-table columns', function () {
+    // The date column is pulled out and re-appended so the announcement
+    // columns sit in front of it rather than after it.
+    it('inserts the announcement columns ahead of the date column', function () {
         $columns = TrumpetAdmin::addCustomColumns([
             'cb' => '<input type="checkbox" />',
             'title' => 'Title',
             'date' => 'Date',
         ]);
 
-        $this->assertSame([
+        expect(array_keys($columns))->toBe([
             'cb',
             'title',
             'announcement_status',
             'announcement_start_date',
             'announcement_end_date',
             'date',
-        ], array_keys($columns));
+        ])
+            ->and($columns['date'])->toBe('Date', 'the original date label should survive the move');
+    });
 
-        $this->assertSame('Date', $columns['date'], 'the original date label should survive the move');
-    }
-
-    #[Test]
-    public function a_column_set_with_no_date_column_gains_only_the_announcement_columns(): void
-    {
+    it('adds only the announcement columns to a column set with no date column', function () {
         $columns = TrumpetAdmin::addCustomColumns(['title' => 'Title']);
 
-        $this->assertSame([
+        expect(array_keys($columns))->toBe([
             'title',
             'announcement_status',
             'announcement_start_date',
             'announcement_end_date',
-        ], array_keys($columns));
-    }
+        ]);
+    });
 
-    #[Test]
-    public function the_announcement_columns_are_registered_as_sortable(): void
-    {
-        $this->assertSame([
+    it('registers the announcement columns as sortable', function () {
+        expect(($this->admin)()->sortableCustomColumns(['title' => 'title']))->toBe([
             'title' => 'title',
             'announcement_end_date' => 'end_date',
             'announcement_status' => 'announcement_status',
             'announcement_start_date' => 'start_date',
-        ], $this->admin()->sortableCustomColumns(['title' => 'title']));
-    }
+        ]);
+    });
+});
 
-    // ── quick edit ────────────────────────────────────────────────────
-    #[Test]
-    public function quick_edit_is_removed_from_an_announcement_row(): void
-    {
-        $actions = $this->admin()->removeQuickEdit(
+// ── quick edit ────────────────────────────────────────────────────
+describe('quick edit', function () {
+    it('removes quick edit from an announcement row', function () {
+        $actions = ($this->admin)()->removeQuickEdit(
             ['edit' => 'Edit', 'inline hide-if-no-js' => 'Quick Edit', 'trash' => 'Trash'],
             new WP_Post(['ID' => 1, 'post_type' => TrumpetConfig::ANNOUNCEMENT_POST_TYPE])
         );
 
-        $this->assertSame(['edit' => 'Edit', 'trash' => 'Trash'], $actions);
-    }
+        expect($actions)->toBe(['edit' => 'Edit', 'trash' => 'Trash']);
+    });
 
-    #[Test]
-    public function quick_edit_survives_on_other_post_types(): void
-    {
+    it('leaves quick edit on other post types', function () {
         $actions = ['edit' => 'Edit', 'inline hide-if-no-js' => 'Quick Edit'];
 
-        $this->assertSame(
-            $actions,
-            $this->admin()->removeQuickEdit($actions, new WP_Post(['ID' => 1, 'post_type' => 'page']))
-        );
+        expect(($this->admin)()->removeQuickEdit($actions, new WP_Post(['ID' => 1, 'post_type' => 'page'])))
+            ->toBe($actions);
+    });
+});
+
+// ── admin styles ──────────────────────────────────────────────────
+it('prints the status colours and column widths into admin head', function () {
+    $css = captureOutput(fn () => ($this->admin)()->addAdminStyles());
+
+    foreach (
+        [
+        '.status-active',
+        '.status-expired',
+        '.status-hidden',
+        '.status-pending',
+        '.status-review',
+        '.status-invalid',
+        '.status-no-date',
+        '.column-announcement_status',
+        '.column-announcement_end_date',
+        ] as $selector
+    ) {
+        expect($css)->toContain($selector);
     }
+});
 
-    // ── admin styles ──────────────────────────────────────────────────
-    #[Test]
-    public function the_status_colours_and_column_widths_are_printed_into_admin_head(): void
-    {
-        $css = $this->capture(fn () => $this->admin()->addAdminStyles());
+// ── column content ────────────────────────────────────────────────
+describe('column content', function () {
+    it('prints the stored end date in the end date column', function () {
+        $this->setFields([TestCase::END_DATE => '31/12/2026']);
 
-        foreach (
-            [
-            '.status-active',
-            '.status-expired',
-            '.status-hidden',
-            '.status-pending',
-            '.status-review',
-            '.status-invalid',
-            '.status-no-date',
-            '.column-announcement_status',
-            '.column-announcement_end_date',
-            ] as $selector
-        ) {
-            $this->assertStringContainsString($selector, $css);
-        }
-    }
+        expect(($this->column)('announcement_end_date'))->toBe('31/12/2026');
+    });
 
-    // ── column content ────────────────────────────────────────────────
-    #[Test]
-    public function the_end_date_column_prints_the_stored_end_date(): void
-    {
-        $this->setFields([self::END_DATE => '31/12/2026']);
+    it('prints an empty end date column for an announcement with no end date', function () {
+        expect(($this->column)('announcement_end_date'))->toBe('');
+    });
 
-        $this->assertSame(
-            '31/12/2026',
-            $this->column('announcement_end_date')
-        );
-    }
+    // A start date still in the future is shown as the date itself, so an
+    // editor can see when the announcement will appear.
+    it('prints a future start date and records its sort key', function () {
+        $future = adminOffsetDate(10);
+        $this->setFields([TestCase::START_DISPLAY => $future]);
 
-    #[Test]
-    public function an_announcement_with_no_end_date_prints_an_empty_end_date_column(): void
-    {
-        $this->assertSame('', $this->column('announcement_end_date'));
-    }
+        expect(($this->column)('announcement_start_date'))->toBe($future)
+            ->and(adminSortMeta('_announcement_start_date_sort'))
+            ->toBe((string) DateTime::createFromFormat('d/m/Y', $future)?->format('Y-m-d'));
+    });
 
-    /**
-     * A start date still in the future is shown as the date itself, so an
-     * editor can see when the announcement will appear.
-     */
-    #[Test]
-    public function a_future_start_date_is_printed_and_its_sort_key_recorded(): void
-    {
-        $future = self::offsetDate(10);
-        $this->setFields([self::START_DISPLAY => $future]);
+    it('prints Started for a start date already reached', function () {
+        $this->setFields([TestCase::START_DISPLAY => adminOffsetDate(-1)]);
 
-        $this->assertSame($future, $this->column('announcement_start_date'));
-        $this->assertSame(
-            (string) DateTime::createFromFormat('d/m/Y', $future)?->format('Y-m-d'),
-            $this->sortMeta('_announcement_start_date_sort')
-        );
-    }
+        expect(($this->column)('announcement_start_date'))->toBe('Started');
+    });
 
-    #[Test]
-    public function a_start_date_already_reached_prints_started(): void
-    {
-        $this->setFields([self::START_DISPLAY => self::offsetDate(-1)]);
+    // An unparseable value is treated as "already started" rather than shown
+    // back to the editor, and sorts to the end of the list.
+    it('prints Started for an unparseable start date and sorts it last', function () {
+        $this->setFields([TestCase::START_DISPLAY => 'whenever']);
 
-        $this->assertSame('Started', $this->column('announcement_start_date'));
-    }
+        expect(($this->column)('announcement_start_date'))->toBe('Started')
+            ->and(adminSortMeta('_announcement_start_date_sort'))->toBe('9999-99-99');
+    });
 
-    /**
-     * An unparseable value is treated as "already started" rather than shown
-     * back to the editor, and sorts to the end of the list.
-     */
-    #[Test]
-    public function an_unparseable_start_date_prints_started_and_sorts_last(): void
-    {
-        $this->setFields([self::START_DISPLAY => 'whenever']);
+    it('prints a dash for an empty start date and sorts it last', function () {
+        $html = ($this->column)('announcement_start_date');
 
-        $this->assertSame('Started', $this->column('announcement_start_date'));
-        $this->assertSame('9999-99-99', $this->sortMeta('_announcement_start_date_sort'));
-    }
+        expect($html)
+            ->toContain('status-no-date')
+            ->toContain('—')
+            ->and(adminSortMeta('_announcement_start_date_sort'))->toBe('9999-99-99');
+    });
 
-    #[Test]
-    public function an_empty_start_date_prints_a_dash_and_sorts_last(): void
-    {
-        $html = $this->column('announcement_start_date');
+    it('prints nothing for an unrecognised column', function () {
+        expect(($this->column)('title'))->toBe('');
+    });
+});
 
-        $this->assertStringContainsString('status-no-date', $html);
-        $this->assertStringContainsString('—', $html);
-        $this->assertSame('9999-99-99', $this->sortMeta('_announcement_start_date_sort'));
-    }
-
-    #[Test]
-    public function an_unrecognised_column_prints_nothing(): void
-    {
-        $this->assertSame('', $this->column('title'));
-    }
-
-    // ── status column ─────────────────────────────────────────────────
-    /**
-     * The status shown in the list table and the meta value it is sorted by are
-     * computed together, so they are asserted together.
-     *
-     * @param array<string, mixed> $fields
-     */
-    #[DataProvider('announcementStatuses')]
-    #[Test]
-    public function the_status_column_reports_and_records_the_announcement_status(
+// ── status column ─────────────────────────────────────────────────
+describe('status column', function () {
+    // The status shown in the list table and the meta value it is sorted by are
+    // computed together, so they are asserted together.
+    it('reports and records the announcement status', function (
         array $fields,
         string $postStatus,
         string $status,
         string $sortValue,
         string $cssClass
-    ): void {
-        WpState::addPost(self::POST_ID, [
+    ) {
+        WpState::addPost(TestCase::POST_ID, [
             'post_type' => TrumpetConfig::ANNOUNCEMENT_POST_TYPE,
             'post_status' => $postStatus,
         ]);
         $this->setFields($fields);
 
-        $html = $this->column('announcement_status');
+        $html = ($this->column)('announcement_status');
 
-        $this->assertSame(sprintf('<span class="%s">%s</span>', $cssClass, $status), $html);
-        $this->assertSame($sortValue, $this->sortMeta('_announcement_status_sort'));
-    }
+        expect($html)->toBe(sprintf('<span class="%s">%s</span>', $cssClass, $status))
+            ->and(adminSortMeta('_announcement_status_sort'))->toBe($sortValue);
+    })->with([
+        'awaiting review' => [
+            [TestCase::END_DATE => adminOffsetDate(10)],
+            'pending',
+            'Review',
+            'review',
+            'status-review',
+        ],
+        // The hide flag outranks the dates, but not the review status.
+        'hidden' => [
+            [TestCase::HIDE => true, TestCase::END_DATE => adminOffsetDate(10)],
+            'publish',
+            'Hidden',
+            'hidden',
+            'status-hidden',
+        ],
+        'not due yet' => [
+            [TestCase::START_DISPLAY => adminOffsetDate(5), TestCase::END_DATE => adminOffsetDate(10)],
+            'publish',
+            'Pending',
+            'pending',
+            'status-pending',
+        ],
+        'no end date' => [
+            [TestCase::START_DISPLAY => adminOffsetDate(-5)],
+            'publish',
+            'No End Date',
+            'no_end_date',
+            'status-no-date',
+        ],
+        'end date that will not parse' => [
+            [TestCase::END_DATE => 'sometime'],
+            'publish',
+            'Invalid Date',
+            'invalid',
+            'status-invalid',
+        ],
+        'end date in the past' => [
+            [TestCase::END_DATE => adminOffsetDate(-1)],
+            'publish',
+            'Expired',
+            'expired',
+            'status-expired',
+        ],
+        'end date in the future' => [
+            [TestCase::END_DATE => adminOffsetDate(1)],
+            'publish',
+            'Active',
+            'active',
+            'status-active',
+        ],
+        // Same day counts as still running, not expired.
+        'end date today' => [
+            [TestCase::END_DATE => adminOffsetDate(0)],
+            'publish',
+            'Active',
+            'active',
+            'status-active',
+        ],
+    ]);
 
-    /** @return array<string, array{0: array<string, mixed>, 1: string, 2: string, 3: string, 4: string}> */
-    public static function announcementStatuses(): array
-    {
-        return [
-            'awaiting review' => [
-                [self::END_DATE => self::offsetDate(10)],
-                'pending',
-                'Review',
-                'review',
-                'status-review',
-            ],
-            // The hide flag outranks the dates, but not the review status.
-            'hidden' => [
-                [self::HIDE => true, self::END_DATE => self::offsetDate(10)],
-                'publish',
-                'Hidden',
-                'hidden',
-                'status-hidden',
-            ],
-            'not due yet' => [
-                [self::START_DISPLAY => self::offsetDate(5), self::END_DATE => self::offsetDate(10)],
-                'publish',
-                'Pending',
-                'pending',
-                'status-pending',
-            ],
-            'no end date' => [
-                [self::START_DISPLAY => self::offsetDate(-5)],
-                'publish',
-                'No End Date',
-                'no_end_date',
-                'status-no-date',
-            ],
-            'end date that will not parse' => [
-                [self::END_DATE => 'sometime'],
-                'publish',
-                'Invalid Date',
-                'invalid',
-                'status-invalid',
-            ],
-            'end date in the past' => [
-                [self::END_DATE => self::offsetDate(-1)],
-                'publish',
-                'Expired',
-                'expired',
-                'status-expired',
-            ],
-            'end date in the future' => [
-                [self::END_DATE => self::offsetDate(1)],
-                'publish',
-                'Active',
-                'active',
-                'status-active',
-            ],
-            // Same day counts as still running, not expired.
-            'end date today' => [
-                [self::END_DATE => self::offsetDate(0)],
-                'publish',
-                'Active',
-                'active',
-                'status-active',
-            ],
-        ];
-    }
+    // A post id with nothing behind it — a row deleted between the query and
+    // the render — falls through the pending check to the date logic rather
+    // than erroring on a null post.
+    it('still yields a status for a missing post', function () {
+        $this->setFields([TestCase::END_DATE => adminOffsetDate(3)]);
 
-    /**
-     * A post id with nothing behind it — a row deleted between the query and
-     * the render — falls through the pending check to the date logic rather
-     * than erroring on a null post.
-     */
-    #[Test]
-    public function a_missing_post_still_yields_a_status(): void
-    {
-        $this->setFields([self::END_DATE => self::offsetDate(3)]);
+        expect(($this->column)('announcement_status'))->toBe('<span class="status-active">Active</span>');
+    });
+});
 
-        $this->assertSame(
-            '<span class="status-active">Active</span>',
-            $this->column('announcement_status')
-        );
-    }
-
-    // ── sorting ───────────────────────────────────────────────────────
-    #[Test]
-    public function sorting_is_left_alone_outside_the_admin(): void
-    {
-        $admin = $this->admin();
+// ── sorting ───────────────────────────────────────────────────────
+describe('sorting', function () {
+    it('leaves sorting alone outside the admin', function () {
+        $admin = ($this->admin)();
         WpState::$isAdmin = false;
 
         $query = new WP_Query(['orderby' => 'end_date']);
         $admin->customSortColumns($query);
 
-        $this->assertSame('end_date', $query->get('orderby'), 'orderby should be untouched');
-        $this->assertSame('', $query->get('meta_key'));
-    }
+        expect($query->get('orderby'))->toBe('end_date', 'orderby should be untouched')
+            ->and($query->get('meta_key'))->toBe('');
+    });
 
-    #[Test]
-    public function sorting_is_left_alone_for_a_secondary_query(): void
-    {
+    it('leaves sorting alone for a secondary query', function () {
         $query = new WP_Query(['orderby' => 'end_date']);
         $query->isMainQuery = false;
 
-        $this->admin()->customSortColumns($query);
+        ($this->admin)()->customSortColumns($query);
 
-        $this->assertSame('end_date', $query->get('orderby'));
-        $this->assertSame('', $query->get('meta_key'));
-    }
+        expect($query->get('orderby'))->toBe('end_date')
+            ->and($query->get('meta_key'))->toBe('');
+    });
 
-    #[Test]
-    public function sorting_by_end_date_orders_on_the_acf_end_date_field(): void
-    {
+    it('orders by end date on the ACF end date field', function () {
         $query = new WP_Query(['orderby' => 'end_date']);
 
-        $this->admin()->customSortColumns($query);
+        ($this->admin)()->customSortColumns($query);
 
-        $this->assertSame(TrumpetConfig::END_DATE_FIELD, $query->get('meta_key'));
-        $this->assertSame('meta_value', $query->get('orderby'));
-    }
+        expect($query->get('meta_key'))->toBe(TrumpetConfig::END_DATE_FIELD)
+            ->and($query->get('orderby'))->toBe('meta_value');
+    });
 
-    /**
-     * The start date is stored as d/m/Y, which does not sort, so ordering goes
-     * through a Y-m-d shadow meta key instead.
-     */
-    #[Test]
-    public function sorting_by_start_date_orders_on_the_shadow_sort_key(): void
-    {
+    // The start date is stored as d/m/Y, which does not sort, so ordering goes
+    // through a Y-m-d shadow meta key instead.
+    it('orders by start date on the shadow sort key', function () {
         $query = new WP_Query(['orderby' => 'start_date']);
 
-        $this->admin()->customSortColumns($query);
+        ($this->admin)()->customSortColumns($query);
 
-        $this->assertSame('_announcement_start_date_sort', $query->get('meta_key'));
-        $this->assertSame('meta_value', $query->get('orderby'));
-        $this->assertSame([], WpState::$postMeta, 'no screen means no rebuild');
-    }
+        expect($query->get('meta_key'))->toBe('_announcement_start_date_sort')
+            ->and($query->get('orderby'))->toBe('meta_value')
+            ->and(WpState::$postMeta)->toBe([], 'no screen means no rebuild');
+    });
 
-    /**
-     * On the announcement list screen the shadow keys are rebuilt first, so a
-     * row whose date was edited elsewhere still sorts correctly.
-     */
-    #[Test]
-    public function sorting_by_start_date_on_the_announcement_screen_rebuilds_every_shadow_key(): void
-    {
-        $this->seedAnnouncements([
-            201 => [self::START_DISPLAY => '05/03/2026'],
+    // On the announcement list screen the shadow keys are rebuilt first, so a
+    // row whose date was edited elsewhere still sorts correctly.
+    it('rebuilds every shadow key when sorting by start date on the announcement screen', function () {
+        ($this->seedAnnouncements)([
+            201 => [TestCase::START_DISPLAY => '05/03/2026'],
             202 => [],
         ]);
         WpState::$screen = new WP_Screen(['id' => 'edit-' . TrumpetConfig::ANNOUNCEMENT_POST_TYPE]);
 
-        $this->admin()->customSortColumns(new WP_Query(['orderby' => 'start_date']));
+        ($this->admin)()->customSortColumns(new WP_Query(['orderby' => 'start_date']));
 
-        $this->assertSame('2026-03-05', WpState::$postMeta[201]['_announcement_start_date_sort']);
-        $this->assertSame('9999-99-99', WpState::$postMeta[202]['_announcement_start_date_sort']);
-    }
+        expect(WpState::$postMeta[201]['_announcement_start_date_sort'])->toBe('2026-03-05')
+            ->and(WpState::$postMeta[202]['_announcement_start_date_sort'])->toBe('9999-99-99');
+    });
 
-    #[Test]
-    public function sorting_by_status_orders_on_the_status_sort_key(): void
-    {
+    it('orders by status on the status sort key', function () {
         $query = new WP_Query(['orderby' => 'announcement_status']);
 
-        $this->admin()->customSortColumns($query);
+        ($this->admin)()->customSortColumns($query);
 
-        $this->assertSame('_announcement_status_sort', $query->get('meta_key'));
-        $this->assertSame('meta_value', $query->get('orderby'));
-        $this->assertSame([], WpState::$postMeta, 'no screen means no rebuild');
-    }
+        expect($query->get('meta_key'))->toBe('_announcement_status_sort')
+            ->and($query->get('orderby'))->toBe('meta_value')
+            ->and(WpState::$postMeta)->toBe([], 'no screen means no rebuild');
+    });
 
-    #[Test]
-    public function sorting_by_status_on_the_announcement_screen_rebuilds_every_status_key(): void
-    {
-        $this->seedAnnouncements([
-            301 => [self::END_DATE => self::offsetDate(5)],
-            302 => [self::HIDE => true],
+    it('rebuilds every status key when sorting by status on the announcement screen', function () {
+        ($this->seedAnnouncements)([
+            301 => [TestCase::END_DATE => adminOffsetDate(5)],
+            302 => [TestCase::HIDE => true],
         ]);
         WpState::$screen = new WP_Screen(['id' => 'edit-' . TrumpetConfig::ANNOUNCEMENT_POST_TYPE]);
 
-        $this->admin()->customSortColumns(new WP_Query(['orderby' => 'announcement_status']));
+        ($this->admin)()->customSortColumns(new WP_Query(['orderby' => 'announcement_status']));
 
-        $this->assertSame('active', WpState::$postMeta[301]['_announcement_status_sort']);
-        $this->assertSame('hidden', WpState::$postMeta[302]['_announcement_status_sort']);
-    }
+        expect(WpState::$postMeta[301]['_announcement_status_sort'])->toBe('active')
+            ->and(WpState::$postMeta[302]['_announcement_status_sort'])->toBe('hidden');
+    });
 
-    #[Test]
-    public function no_rebuild_happens_on_another_screen(): void
-    {
-        $this->seedAnnouncements([301 => [self::END_DATE => self::offsetDate(5)]]);
+    it('does not rebuild on another screen', function () {
+        ($this->seedAnnouncements)([301 => [TestCase::END_DATE => adminOffsetDate(5)]]);
         WpState::$screen = new WP_Screen(['id' => 'edit-post']);
 
-        $this->admin()->customSortColumns(new WP_Query(['orderby' => 'announcement_status']));
+        ($this->admin)()->customSortColumns(new WP_Query(['orderby' => 'announcement_status']));
 
-        $this->assertSame([], WpState::$postMeta);
-    }
+        expect(WpState::$postMeta)->toBe([]);
+    });
 
-    #[Test]
-    public function an_unrecognised_orderby_is_left_alone(): void
-    {
+    it('leaves an unrecognised orderby alone', function () {
         $query = new WP_Query(['orderby' => 'title']);
 
-        $this->admin()->customSortColumns($query);
+        ($this->admin)()->customSortColumns($query);
 
-        $this->assertSame('title', $query->get('orderby'));
-        $this->assertSame('', $query->get('meta_key'));
-    }
+        expect($query->get('orderby'))->toBe('title')
+            ->and($query->get('meta_key'))->toBe('');
+    });
 
-    /**
-     * The rebuild loops swallow failures rather than breaking the list table,
-     * and both report through Plugin's logger.
-     */
-    #[DataProvider('rebuildOrderings')]
-    #[Test]
-    public function a_failed_rebuild_is_logged_and_leaves_the_list_table_working(
+    // The rebuild loops swallow failures rather than breaking the list table,
+    // and both report through Plugin's logger.
+    it('logs a failed rebuild and leaves the list table working', function (
         string $orderby,
         string $expectedMessage
-    ): void {
-        when('get_posts')->alias(static function (array $args = []): array {
+    ) {
+        Functions\when('get_posts')->alias(static function (array $args = []): array {
             throw new Exception('the posts table is unavailable');
         });
         WpState::$screen = new WP_Screen(['id' => 'edit-' . TrumpetConfig::ANNOUNCEMENT_POST_TYPE]);
 
         $query = new WP_Query(['orderby' => $orderby]);
-        $this->admin()->customSortColumns($query);
+        ($this->admin)()->customSortColumns($query);
 
-        $this->assertSame('meta_value', $query->get('orderby'), 'the ordering should still be applied');
-        $this->assertStringContainsString($expectedMessage, $this->loggedErrors());
-    }
+        expect($query->get('orderby'))->toBe('meta_value', 'the ordering should still be applied')
+            ->and(adminLoggedErrors())->toContain($expectedMessage);
+    })->with([
+        'start date' => ['start_date', 'Error updating start date sort meta values'],
+        'status' => ['announcement_status', 'Error updating announcement status meta values'],
+    ]);
+});
 
-    /** @return array<string, array{0: string, 1: string}> */
-    public static function rebuildOrderings(): array
-    {
-        return [
-            'start date' => ['start_date', 'Error updating start date sort meta values'],
-            'status' => ['announcement_status', 'Error updating announcement status meta values'],
-        ];
-    }
-
-    // ── admin notices ─────────────────────────────────────────────────
-    #[Test]
-    public function no_notices_are_printed_away_from_the_announcement_list(): void
-    {
+// ── admin notices ─────────────────────────────────────────────────
+describe('admin notices', function () {
+    it('prints no notices away from the announcement list', function () {
         $GLOBALS['pagenow'] = 'index.php';
         $GLOBALS['post_type'] = TrumpetConfig::ANNOUNCEMENT_POST_TYPE;
 
-        $this->assertSame('', $this->capture(fn () => $this->admin()->displayAdminNotices()));
-    }
+        expect(captureOutput(fn () => ($this->admin)()->displayAdminNotices()))->toBe('');
+    });
 
-    #[Test]
-    public function no_notices_are_printed_for_another_post_type(): void
-    {
+    it('prints no notices for another post type', function () {
         $GLOBALS['pagenow'] = 'edit.php';
         $GLOBALS['post_type'] = 'page';
 
-        $this->assertSame('', $this->capture(fn () => $this->admin()->displayAdminNotices()));
-    }
+        expect(captureOutput(fn () => ($this->admin)()->displayAdminNotices()))->toBe('');
+    });
 
-    #[Test]
-    public function nothing_is_printed_when_every_count_is_zero(): void
-    {
-        $this->onAnnouncementList();
+    it('prints nothing when every count is zero', function () {
+        onAnnouncementList();
         $this->manager->shouldReceive('getAnnouncements')->andReturn([]);
 
-        $this->assertSame('', $this->capture(fn () => $this->admin()->displayAdminNotices()));
-    }
+        expect(captureOutput(fn () => ($this->admin)()->displayAdminNotices()))->toBe('');
+    });
 
-    #[Test]
-    public function expired_announcements_raise_a_pluralised_warning(): void
-    {
-        $this->onAnnouncementList();
+    it('raises a pluralised warning for expired announcements', function () {
+        onAnnouncementList();
         $this->manager->shouldReceive('getAnnouncements')->andReturn([
-            $this->makeAnnouncement([self::END_DATE => self::offsetDate(-5)], 'publish', 401),
-            $this->makeAnnouncement([self::END_DATE => self::offsetDate(-6)], 'publish', 402),
+            $this->makeAnnouncement([TestCase::END_DATE => adminOffsetDate(-5)], 'publish', 401),
+            $this->makeAnnouncement([TestCase::END_DATE => adminOffsetDate(-6)], 'publish', 402),
         ]);
 
-        $html = $this->capture(fn () => $this->admin()->displayAdminNotices());
+        $html = captureOutput(fn () => ($this->admin)()->displayAdminNotices());
 
-        $this->assertStringContainsString('notice-warning', $html);
-        $this->assertStringContainsString('There are 2 expired announcements.', $html);
-    }
+        expect($html)
+            ->toContain('notice-warning')
+            ->toContain('There are 2 expired announcements.');
+    });
 
-    #[Test]
-    public function a_single_expired_announcement_reads_in_the_singular(): void
-    {
-        $this->onAnnouncementList();
+    it('reads in the singular for a single expired announcement', function () {
+        onAnnouncementList();
         $this->manager->shouldReceive('getAnnouncements')->andReturn([
-            $this->makeAnnouncement([self::END_DATE => self::offsetDate(-5)], 'publish', 401),
+            $this->makeAnnouncement([TestCase::END_DATE => adminOffsetDate(-5)], 'publish', 401),
         ]);
 
-        $this->assertStringContainsString(
-            'There is 1 expired announcement.',
-            $this->capture(fn () => $this->admin()->displayAdminNotices())
-        );
-    }
+        expect(captureOutput(fn () => ($this->admin)()->displayAdminNotices()))
+            ->toContain('There is 1 expired announcement.');
+    });
 
-    /**
-     * The review count comes from the posts table rather than the manager,
-     * because a pending post is not something the front-end query returns.
-     */
-    #[Test]
-    public function announcements_awaiting_review_raise_their_own_notice(): void
-    {
-        $this->onAnnouncementList();
+    // The review count comes from the posts table rather than the manager,
+    // because a pending post is not something the front-end query returns.
+    it('raises its own notice for announcements awaiting review', function () {
+        onAnnouncementList();
         $this->manager->shouldReceive('getAnnouncements')->andReturn([]);
         WpState::$queryPosts = [
             WpState::addPost(501, [
@@ -663,215 +574,146 @@ class TrumpetAdminTest extends TestCase
             ]),
         ];
 
-        $html = $this->capture(fn () => $this->admin()->displayAdminNotices());
+        $html = captureOutput(fn () => ($this->admin)()->displayAdminNotices());
 
-        $this->assertStringContainsString('There is 1 announcement awaiting review.', $html);
-        // The review notice is tinted apart from the expiry warning.
-        $this->assertStringContainsString('#f56e28', $html);
-    }
+        expect($html)
+            ->toContain('There is 1 announcement awaiting review.')
+            // The review notice is tinted apart from the expiry warning.
+            ->toContain('#f56e28');
+    });
 
-    #[Test]
-    public function announcements_not_yet_due_raise_an_informational_notice(): void
-    {
-        $this->onAnnouncementList();
+    it('raises an informational notice for announcements not yet due', function () {
+        onAnnouncementList();
         $this->manager->shouldReceive('getAnnouncements')->andReturn([
-            $this->makeAnnouncement([self::START_DISPLAY => self::offsetDate(5)], 'publish', 601),
+            $this->makeAnnouncement([TestCase::START_DISPLAY => adminOffsetDate(5)], 'publish', 601),
         ]);
 
-        $html = $this->capture(fn () => $this->admin()->displayAdminNotices());
+        $html = captureOutput(fn () => ($this->admin)()->displayAdminNotices());
 
-        $this->assertStringContainsString('notice-info', $html);
-        $this->assertStringContainsString('There is 1 pending announcement.', $html);
-    }
+        expect($html)
+            ->toContain('notice-info')
+            ->toContain('There is 1 pending announcement.');
+    });
 
-    #[Test]
-    public function a_hidden_announcement_is_not_counted_as_pending(): void
-    {
-        $this->onAnnouncementList();
+    it('does not count a hidden announcement as pending', function () {
+        onAnnouncementList();
         $this->manager->shouldReceive('getAnnouncements')->andReturn([
             $this->makeAnnouncement(
-                [self::HIDE => true, self::START_DISPLAY => self::offsetDate(5)],
+                [TestCase::HIDE => true, TestCase::START_DISPLAY => adminOffsetDate(5)],
                 'publish',
                 601
             ),
         ]);
 
-        $this->assertSame('', $this->capture(fn () => $this->admin()->displayAdminNotices()));
-    }
+        expect(captureOutput(fn () => ($this->admin)()->displayAdminNotices()))->toBe('');
+    });
 
-    /**
-     * Both manager-backed counts fail closed at zero and log, so a broken
-     * repository leaves the list table usable rather than fatal.
-     */
-    #[Test]
-    public function a_failure_counting_announcements_is_logged_and_reported_as_zero(): void
-    {
-        $this->onAnnouncementList();
+    // Both manager-backed counts fail closed at zero and log, so a broken
+    // repository leaves the list table usable rather than fatal.
+    it('logs a failure counting announcements and reports it as zero', function () {
+        onAnnouncementList();
         $this->manager->shouldReceive('getAnnouncements')
             ->andThrow(new Exception('the repository is unavailable'));
 
-        $this->assertSame('', $this->capture(fn () => $this->admin()->displayAdminNotices()));
+        expect(captureOutput(fn () => ($this->admin)()->displayAdminNotices()))->toBe('');
 
-        $logged = $this->loggedErrors();
-        $this->assertStringContainsString('Error counting expired announcements', $logged);
-        $this->assertStringContainsString('Error counting pending announcements', $logged);
-        $this->assertStringContainsString('the repository is unavailable', $logged);
-    }
+        expect(adminLoggedErrors())
+            ->toContain('Error counting expired announcements')
+            ->toContain('Error counting pending announcements')
+            ->toContain('the repository is unavailable');
+    });
+});
 
-    // ── saves ─────────────────────────────────────────────────────────
-    #[Test]
-    public function saving_a_published_announcement_records_its_status_and_sort_keys(): void
-    {
+// ── saves ─────────────────────────────────────────────────────────
+describe('saves', function () {
+    it('records the status and sort keys when a published announcement is saved', function () {
         WpState::addPost(701, [
             'post_type' => TrumpetConfig::ANNOUNCEMENT_POST_TYPE,
             'post_status' => 'publish',
         ]);
         $this->setFields([
-            self::END_DATE => self::offsetDate(10),
-            self::START_DISPLAY => '05/03/2026',
+            TestCase::END_DATE => adminOffsetDate(10),
+            TestCase::START_DISPLAY => '05/03/2026',
         ], 701);
 
-        $this->admin()->updateStatusOnSave(
+        ($this->admin)()->updateStatusOnSave(
             701,
             new WP_Post(['ID' => 701, 'post_status' => 'publish']),
             true
         );
 
-        $this->assertSame('active', WpState::$postMeta[701]['_announcement_status_sort']);
-        $this->assertSame('2026-03-05', WpState::$postMeta[701]['_announcement_start_date_sort']);
-    }
+        expect(WpState::$postMeta[701]['_announcement_status_sort'])->toBe('active')
+            ->and(WpState::$postMeta[701]['_announcement_start_date_sort'])->toBe('2026-03-05');
+    });
 
-    #[Test]
-    public function saving_a_draft_records_nothing(): void
-    {
-        $this->admin()->updateStatusOnSave(
+    it('records nothing when a draft is saved', function () {
+        ($this->admin)()->updateStatusOnSave(
             701,
             new WP_Post(['ID' => 701, 'post_status' => 'draft']),
             true
         );
 
-        $this->assertSame([], WpState::$postMeta);
-    }
+        expect(WpState::$postMeta)->toBe([]);
+    });
 
-    #[Test]
-    public function a_revision_save_is_ignored(): void
-    {
-        when('wp_is_post_revision')->justReturn(702);
+    it('ignores a revision save', function () {
+        Functions\when('wp_is_post_revision')->justReturn(702);
 
-        $this->admin()->updateStatusOnSave(
+        ($this->admin)()->updateStatusOnSave(
             701,
             new WP_Post(['ID' => 701, 'post_status' => 'publish']),
             true
         );
 
-        $this->assertSame([], WpState::$postMeta);
-    }
+        expect(WpState::$postMeta)->toBe([]);
+    });
 
-    /**
-     * ACF saves fire for every post type, so the handler has to filter on type
-     * itself — save_post_announcement does that for it, acf/save_post does not.
-     */
-    #[Test]
-    public function an_acf_save_on_another_post_type_is_ignored(): void
-    {
+    // ACF saves fire for every post type, so the handler has to filter on type
+    // itself — save_post_announcement does that for it, acf/save_post does not.
+    it('ignores an ACF save on another post type', function () {
         WpState::addPost(801, ['post_type' => 'page']);
 
-        $this->admin()->updateStatusOnAcfSave(801);
+        ($this->admin)()->updateStatusOnAcfSave(801);
 
-        $this->assertSame([], WpState::$postMeta);
-    }
+        expect(WpState::$postMeta)->toBe([]);
+    });
 
-    #[Test]
-    public function an_acf_save_records_the_status_and_sort_keys(): void
-    {
+    it('records the status and sort keys on an ACF save', function () {
         WpState::addPost(801, [
             'post_type' => TrumpetConfig::ANNOUNCEMENT_POST_TYPE,
             'post_status' => 'publish',
         ]);
-        $this->setFields([self::END_DATE => self::offsetDate(-3)], 801);
+        $this->setFields([TestCase::END_DATE => adminOffsetDate(-3)], 801);
 
-        $this->admin()->updateStatusOnAcfSave(801);
+        ($this->admin)()->updateStatusOnAcfSave(801);
 
-        $this->assertSame('expired', WpState::$postMeta[801]['_announcement_status_sort']);
-        $this->assertSame('9999-99-99', WpState::$postMeta[801]['_announcement_start_date_sort']);
-    }
+        expect(WpState::$postMeta[801]['_announcement_status_sort'])->toBe('expired')
+            ->and(WpState::$postMeta[801]['_announcement_start_date_sort'])->toBe('9999-99-99');
+    });
 
-    #[Test]
-    public function an_acf_save_on_a_revision_is_ignored(): void
-    {
+    it('ignores an ACF save on a revision', function () {
         WpState::addPost(801, [
             'post_type' => TrumpetConfig::ANNOUNCEMENT_POST_TYPE,
             'post_status' => 'publish',
         ]);
-        when('wp_is_post_revision')->justReturn(802);
+        Functions\when('wp_is_post_revision')->justReturn(802);
 
-        $this->admin()->updateStatusOnAcfSave(801);
+        ($this->admin)()->updateStatusOnAcfSave(801);
 
-        $this->assertSame([], WpState::$postMeta);
-    }
+        expect(WpState::$postMeta)->toBe([]);
+    });
 
-    /**
-     * The column callback swallows failures so one bad row cannot blank the
-     * whole list table.
-     */
-    #[Test]
-    public function a_failure_rendering_a_column_is_logged_rather_than_thrown(): void
-    {
-        when('update_post_meta')->alias(
+    // The column callback swallows failures so one bad row cannot blank the
+    // whole list table.
+    it('logs a failure rendering a column rather than throwing', function () {
+        Functions\when('update_post_meta')->alias(
             static function (int $postId, string $key, mixed $value, mixed $prev = ''): bool {
                 throw new Exception('the meta table is unavailable');
             }
         );
-        $this->setFields([self::START_DISPLAY => '05/03/2026']);
+        $this->setFields([TestCase::START_DISPLAY => '05/03/2026']);
 
-        $this->assertSame('', $this->column('announcement_start_date'));
-        $this->assertStringContainsString('Error displaying column content', $this->loggedErrors());
-    }
-
-    // ── helpers ───────────────────────────────────────────────────────
-
-    /** Render one list-table column for the announcement under test. */
-    private function column(string $column, int $postId = self::POST_ID): string
-    {
-        return $this->capture(
-            fn () => $this->admin()->displayCustomColumnContent($column, $postId)
-        );
-    }
-
-    private function sortMeta(string $key, int $postId = self::POST_ID): string
-    {
-        return (string) (WpState::$postMeta[$postId][$key] ?? '');
-    }
-
-    /**
-     * Seed published announcements that get_posts() will return, each with its
-     * own ACF field values.
-     *
-     * @param array<int, array<string, mixed>> $announcements Post id => fields
-     */
-    private function seedAnnouncements(array $announcements): void
-    {
-        foreach ($announcements as $postId => $fields) {
-            WpState::$queryPosts[] = WpState::addPost($postId, [
-                'post_type' => TrumpetConfig::ANNOUNCEMENT_POST_TYPE,
-                'post_status' => 'publish',
-            ]);
-            $this->setFields($fields, $postId);
-        }
-    }
-
-    private function onAnnouncementList(): void
-    {
-        $GLOBALS['pagenow'] = 'edit.php';
-        $GLOBALS['post_type'] = TrumpetConfig::ANNOUNCEMENT_POST_TYPE;
-    }
-
-    /** Everything Plugin's logger recorded, as one searchable string. */
-    private function loggedErrors(): string
-    {
-        return implode("\n", array_map(
-            static fn (array $entry): string => (string) ($entry[2] ?? ''),
-            array_filter(WpState::$logs, static fn (array $entry): bool => ($entry[1] ?? '') === 'error')
-        ));
-    }
-}
+        expect(($this->column)('announcement_start_date'))->toBe('')
+            ->and(adminLoggedErrors())->toContain('Error displaying column content');
+    });
+});

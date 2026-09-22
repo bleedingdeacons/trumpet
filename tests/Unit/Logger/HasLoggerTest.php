@@ -4,58 +4,48 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Logger;
 
-use PHPUnit\Framework\Attributes\CoversTrait;
-use PHPUnit\Framework\Attributes\CoversClass;
 use BleedingDeacons\WpMocks\WpState;
-use Tests\TestCase;
 use Trumpet\Exception\AnnouncementException;
 use Trumpet\Logger\HasLogger;
 
-/**
+/*
  * The HasLogger trait resolves the shared Sentinel logger via wp_log(). A host
  * class that does not override logChannel() drives the default derivation and
  * every level forwarder; wp-mocks' `sentinel` group supplies the channel, so
  * what each forwarder emits is assertable. AnnouncementException's constructor
  * logs through the same trait (on Plugin), so it is covered here too.
  */
-#[CoversTrait(\Trumpet\Logger\HasLogger::class)]
-#[CoversClass(\Trumpet\Exception\AnnouncementException::class)]
-class HasLoggerTest extends TestCase
-{
-    public function testEveryLevelForwarderReachesTheChannel(): void
-    {
-        $this->assertNotNull(TrumpetLoggerHost::log());
 
-        TrumpetLoggerHost::logEmergency('m', ['k' => 'v']);
-        TrumpetLoggerHost::logAlert('m');
-        TrumpetLoggerHost::logCritical('m');
-        TrumpetLoggerHost::logError('m');
-        TrumpetLoggerHost::logWarning('m');
-        TrumpetLoggerHost::logNotice('m');
-        TrumpetLoggerHost::logInfo('m');
-        TrumpetLoggerHost::logDebug('m');
+covers(HasLogger::class, AnnouncementException::class);
 
-        $levels = array_column(
-            array_filter(WpState::$logs, static fn (array $l): bool => $l[0] === 'trumpetloggerhost'),
-            1
-        );
+it('forwards every level to the channel', function () {
+    expect(TrumpetLoggerHost::log())->not->toBeNull();
 
-        $this->assertSame(
-            ['emergency', 'alert', 'critical', 'error', 'warning', 'notice', 'info', 'debug'],
-            $levels
-        );
-    }
+    TrumpetLoggerHost::logEmergency('m', ['k' => 'v']);
+    TrumpetLoggerHost::logAlert('m');
+    TrumpetLoggerHost::logCritical('m');
+    TrumpetLoggerHost::logError('m');
+    TrumpetLoggerHost::logWarning('m');
+    TrumpetLoggerHost::logNotice('m');
+    TrumpetLoggerHost::logInfo('m');
+    TrumpetLoggerHost::logDebug('m');
 
-    public function testAnnouncementExceptionCarriesMessageCodeAndPrevious(): void
-    {
-        $previous = new \RuntimeException('root');
-        $e = new AnnouncementException('bad announcement', 7, $previous);
+    $levels = array_column(
+        array_filter(WpState::$logs, static fn (array $l): bool => $l[0] === 'trumpetloggerhost'),
+        1
+    );
 
-        $this->assertSame('bad announcement', $e->getMessage());
-        $this->assertSame(7, $e->getCode());
-        $this->assertSame($previous, $e->getPrevious());
-    }
-}
+    expect($levels)->toBe(['emergency', 'alert', 'critical', 'error', 'warning', 'notice', 'info', 'debug']);
+});
+
+it('carries the message, code and previous exception on AnnouncementException', function () {
+    $previous = new \RuntimeException('root');
+    $e = new AnnouncementException('bad announcement', 7, $previous);
+
+    expect($e->getMessage())->toBe('bad announcement')
+        ->and($e->getCode())->toBe(7)
+        ->and($e->getPrevious())->toBe($previous);
+});
 
 /** A class that uses the trait without overriding logChannel(). */
 class TrumpetLoggerHost

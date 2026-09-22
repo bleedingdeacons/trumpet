@@ -4,12 +4,10 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Common;
 
-use PHPUnit\Framework\Attributes\Test;
-use Tests\TestCase;
 use RuntimeException;
 use Trumpet\Common\DependencyContainer;
 
-/**
+/*
  * Tests for Trumpet's own container.
  *
  * This is distinct from Unity's container: Trumpet registers its services into
@@ -17,82 +15,60 @@ use Trumpet\Common\DependencyContainer;
  * matters is that factories resolve lazily and exactly once — services holding
  * caches or repositories would misbehave subtly if a second instance appeared.
  */
-class DependencyContainerTest extends TestCase
-{
-    private DependencyContainer $container;
 
-    protected function setUp(): void
-    {
-        parent::setUp();
-        $this->container = new DependencyContainer();
-    }
+beforeEach(function () {
+    $this->container = new DependencyContainer();
+});
 
-    #[Test]
-    public function it_resolves_a_registered_factory(): void
-    {
-        $service = new \stdClass();
-        $this->container->register('svc', static fn (): object => $service);
+it('resolves a registered factory', function () {
+    $service = new \stdClass();
+    $this->container->register('svc', static fn (): object => $service);
 
-        $this->assertSame($service, $this->container->get('svc'));
-    }
+    expect($this->container->get('svc'))->toBe($service);
+});
 
-    #[Test]
-    public function it_throws_naming_the_missing_service(): void
-    {
-        $this->expectException(RuntimeException::class);
-        $this->expectExceptionMessage('Service not found: absent.service');
+it('throws naming the missing service', function () {
+    $this->container->get('absent.service');
+})->throws(RuntimeException::class, 'Service not found: absent.service');
 
-        $this->container->get('absent.service');
-    }
+it('returns the same instance on every call', function () {
+    $this->container->register('svc', static fn (): object => new \stdClass());
 
-    #[Test]
-    public function it_returns_the_same_instance_on_every_call(): void
-    {
-        $this->container->register('svc', static fn (): object => new \stdClass());
+    expect($this->container->get('svc'))->toBe(
+        $this->container->get('svc'),
+        'The container must cache resolved services, not rebuild them per call.'
+    );
+});
 
-        $this->assertSame(
-            $this->container->get('svc'),
-            $this->container->get('svc'),
-            'The container must cache resolved services, not rebuild them per call.'
-        );
-    }
+it('does not run a factory until the service is requested', function () {
+    $runs = 0;
+    $this->container->register('svc', static function () use (&$runs): object {
+        $runs++;
 
-    #[Test]
-    public function it_does_not_run_a_factory_until_the_service_is_requested(): void
-    {
-        $runs = 0;
-        $this->container->register('svc', static function () use (&$runs): object {
-            $runs++;
+        return new \stdClass();
+    });
 
-            return new \stdClass();
-        });
+    expect($runs)->toBe(0, 'Registering must not resolve.');
 
-        $this->assertSame(0, $runs, 'Registering must not resolve.');
+    $this->container->get('svc');
+    $this->container->get('svc');
 
-        $this->container->get('svc');
-        $this->container->get('svc');
+    expect($runs)->toBe(1, 'The factory must run exactly once.');
+});
 
-        $this->assertSame(1, $runs, 'The factory must run exactly once.');
-    }
+it('passes the container to the factory so services can depend on each other', function () {
+    $this->container->register('dependency', static fn (): string => 'inner');
+    $this->container->register(
+        'consumer',
+        static fn (DependencyContainer $c): string => 'wraps:' . $c->get('dependency')
+    );
 
-    #[Test]
-    public function the_factory_receives_the_container_so_services_can_depend_on_each_other(): void
-    {
-        $this->container->register('dependency', static fn (): string => 'inner');
-        $this->container->register(
-            'consumer',
-            static fn (DependencyContainer $c): string => 'wraps:' . $c->get('dependency')
-        );
+    expect($this->container->get('consumer'))->toBe('wraps:inner');
+});
 
-        $this->assertSame('wraps:inner', $this->container->get('consumer'));
-    }
+it('lets a later registration replace an earlier one', function () {
+    $this->container->register('svc', static fn (): string => 'first');
+    $this->container->register('svc', static fn (): string => 'second');
 
-    #[Test]
-    public function a_later_registration_replaces_an_earlier_one(): void
-    {
-        $this->container->register('svc', static fn (): string => 'first');
-        $this->container->register('svc', static fn (): string => 'second');
-
-        $this->assertSame('second', $this->container->get('svc'));
-    }
-}
+    expect($this->container->get('svc'))->toBe('second');
+});

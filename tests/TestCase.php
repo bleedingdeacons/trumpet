@@ -16,10 +16,16 @@ use WP_Post;
  * Extends the shared wp-mocks base — Brain Monkey lifecycle, Mockery
  * integration, and a WpState reset between tests — and adds a builder for the
  * WP_Post + ACF field combination an Announcement is constructed from.
+ *
+ * The tests are closure-based Pest files with no class to extend this from;
+ * tests/Pest.php binds every file under tests/Unit to it, so $this inside a
+ * test closure is an instance of this class. The field-name shorthands and
+ * POST_ID are public so that Pest datasets and file-level helper functions,
+ * which run outside any class scope, can refer to them as TestCase::HIDE etc.
  */
 abstract class TestCase extends WpMocksTestCase
 {
-    protected const POST_ID = 101;
+    public const POST_ID = 101;
 
     protected function setUp(): void
     {
@@ -92,11 +98,11 @@ abstract class TestCase extends WpMocksTestCase
     /**
      * Field-name shorthands, so tests read as behaviour rather than constants.
      */
-    protected const HIDE = TrumpetConfig::HIDE_FIELD;
-    protected const END_DATE = TrumpetConfig::END_DATE_FIELD;
-    protected const START_DISPLAY = TrumpetConfig::START_DISPLAY_FIELD;
-    protected const TITLE = TrumpetConfig::TITLE_FIELD;
-    protected const BODY = TrumpetConfig::BODY_FIELD;
-    protected const LOCATION = TrumpetConfig::LOCATION_FIELD;
-    protected const SHOW_MAP = TrumpetConfig::SHOW_MAP_FIELD;
+    public const HIDE = TrumpetConfig::HIDE_FIELD;
+    public const END_DATE = TrumpetConfig::END_DATE_FIELD;
+    public const START_DISPLAY = TrumpetConfig::START_DISPLAY_FIELD;
+    public const TITLE = TrumpetConfig::TITLE_FIELD;
+    public const BODY = TrumpetConfig::BODY_FIELD;
+    public const LOCATION = TrumpetConfig::LOCATION_FIELD;
+    public const SHOW_MAP = TrumpetConfig::SHOW_MAP_FIELD;
 }
