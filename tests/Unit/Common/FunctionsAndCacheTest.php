@@ -4,80 +4,68 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Common;
 
-use PHPUnit\Framework\Attributes\CoversClass;
-use Tests\TestCase;
 use Trumpet\Common\Functions;
 use Trumpet\Common\WordPressCache;
 use Trumpet\Config\TrumpetConfig;
 
-/**
+/*
  * Cover the small pure helpers: the link/anchor builders in Functions, the
  * wp_cache_* adapter, and that TrumpetConfig's constants are reachable.
  */
-#[CoversClass(\Trumpet\Common\Functions::class)]
-#[CoversClass(\Trumpet\Common\WordPressCache::class)]
-#[CoversClass(\Trumpet\Config\TrumpetConfig::class)]
-class FunctionsAndCacheTest extends TestCase
-{
-    protected function setUp(): void
-    {
-        parent::setUp();
-        $GLOBALS['trumpet_test_cache'] = [];
-    }
 
-    // ─── Functions ───────────────────────────────────────────────────
+covers(Functions::class, WordPressCache::class, TrumpetConfig::class);
 
-    public function testEmailToBuildsMailtoWithAndWithoutSubject(): void
-    {
-        $this->assertSame('mailto:a@example.com', Functions::emailTo('a@example.com'));
-        $this->assertSame('mailto:a@example.com?subject=Hello', Functions::emailTo('a@example.com', 'Hello'));
-    }
+beforeEach(function () {
+    $GLOBALS['trumpet_test_cache'] = [];
+});
 
-    public function testPhoneToBuildsTelLink(): void
-    {
-        $this->assertSame('tel:07700900000', Functions::phoneTo('07700900000'));
-    }
+// ─── Functions ───────────────────────────────────────────────────
+describe('Functions', function () {
+    it('builds a mailto link with and without a subject', function () {
+        expect(Functions::emailTo('a@example.com'))->toBe('mailto:a@example.com')
+            ->and(Functions::emailTo('a@example.com', 'Hello'))->toBe('mailto:a@example.com?subject=Hello');
+    });
 
-    public function testLinkToBuildsAnAnchor(): void
-    {
+    it('builds a tel link', function () {
+        expect(Functions::phoneTo('07700900000'))->toBe('tel:07700900000');
+    });
+
+    it('builds an anchor', function () {
         $html = Functions::linkTo('https://example.com', 'btn', 'Click');
-        $this->assertStringContainsString('href="https://example.com"', $html);
-        $this->assertStringContainsString('class="btn"', $html);
-        $this->assertStringContainsString('>Click</a>', $html);
-        $this->assertStringContainsString('rel="noreferrer noopener"', $html);
-    }
+        expect($html)
+            ->toContain('href="https://example.com"')
+            ->toContain('class="btn"')
+            ->toContain('>Click</a>')
+            ->toContain('rel="noreferrer noopener"');
+    });
 
-    public function testCreateEmailAnchorCombinesMailtoAndAnchor(): void
-    {
+    it('combines mailto and anchor in createEmailAnchor', function () {
         $html = Functions::createEmailAnchor('a@example.com', 'Hi', 'btn', 'Email us');
-        $this->assertStringContainsString('href="mailto:a@example.com?subject=Hi"', $html);
-        $this->assertStringContainsString('>Email us</a>', $html);
-    }
+        expect($html)
+            ->toContain('href="mailto:a@example.com?subject=Hi"')
+            ->toContain('>Email us</a>');
+    });
+});
 
-    // ─── WordPressCache ──────────────────────────────────────────────
+// ─── WordPressCache ──────────────────────────────────────────────
+it('round-trips values through the cache', function () {
+    $cache = new WordPressCache();
+    expect($cache->get('missing'))->toBeFalse();
 
-    public function testCacheRoundTrips(): void
-    {
-        $cache = new WordPressCache();
-        $this->assertFalse($cache->get('missing'));
+    // get() reads the default cache group, so set() must write there too.
+    expect($cache->set('k', ['v' => 1]))->toBeTrue()
+        ->and($cache->get('k'))->toBe(['v' => 1]);
 
-        // get() reads the default cache group, so set() must write there too.
-        $this->assertTrue($cache->set('k', ['v' => 1]));
-        $this->assertSame(['v' => 1], $cache->get('k'));
+    expect($cache->delete('k'))->toBeTrue()
+        ->and($cache->get('k'))->toBeFalse();
 
-        $this->assertTrue($cache->delete('k'));
-        $this->assertFalse($cache->get('k'));
+    $cache->set('a', 1);
+    expect($cache->flush())->toBeTrue()
+        ->and($cache->get('a'))->toBeFalse();
+});
 
-        $cache->set('a', 1);
-        $this->assertTrue($cache->flush());
-        $this->assertFalse($cache->get('a'));
-    }
-
-    // ─── TrumpetConfig ───────────────────────────────────────────────
-
-    public function testConfigConstantsAreReachable(): void
-    {
-        $this->assertSame('announcement', TrumpetConfig::ANNOUNCEMENT_POST_TYPE);
-        $this->assertSame(3600, TrumpetConfig::CACHE_DURATION);
-    }
-}
+// ─── TrumpetConfig ───────────────────────────────────────────────
+it('makes the config constants reachable', function () {
+    expect(TrumpetConfig::ANNOUNCEMENT_POST_TYPE)->toBe('announcement')
+        ->and(TrumpetConfig::CACHE_DURATION)->toBe(3600);
+});

@@ -191,10 +191,15 @@ composer install
 
 | Command | Description |
 |---|---|
-| `composer test` | Run the PHPUnit test suite |
+| `composer test` | Run the Pest test suite |
 | `composer test:coverage` | Generate an HTML coverage report |
 | `composer phpcs` | Check WordPress coding standards |
 | `composer phpstan` | Run PHPStan static analysis |
+
+The suite is written in [**Pest**](https://pestphp.com) (on PHPUnit) with **Mockery** and
+[**bleedingdeacons/wp-mocks**](https://github.com/bleedingdeacons/wp-mocks) —
+the suite's shared WordPress test doubles, a state-backed stub layer over Brain
+Monkey.
 
 PHPStan is scanned against Unity and Sentinel checked out alongside; the CI
 workflow checks them out automatically. Line coverage is reported to

@@ -20,6 +20,7 @@
     "require-dev": {
         "bleedingdeacons/wp-mocks": "^3.0",
         "mockery/mockery": "^1.6",
+        "pestphp/pest": "^5.2",
         "phpstan/phpstan": "^2.0",
         "phpunit/phpunit": "^13.0",
         "psr/container": "^2.0",
@@ -62,16 +63,16 @@
             "php build.php --help"
         ],
         "test": [
-            "phpunit"
+            "pest"
         ],
         "test:coverage": [
-            "phpunit --coverage-html coverage"
+            "pest --coverage-html coverage"
         ],
         "test:coverage-text": [
-            "phpunit --coverage-text"
+            "pest --coverage-text"
         ],
         "test:filter": [
-            "phpunit --filter"
+            "pest --filter"
         ],
         "phpcs": [
             "phpcs --standard=.phpcs.xml.dist"
@@ -98,7 +99,7 @@
         "clean": "Remove the build directory and all archives",
         "version": "Display the current plugin version from main file",
         "build:help": "Display detailed build script help and usage",
-        "test": "Run PHPUnit tests",
+        "test": "Run the Pest test suite",
         "test:coverage": "Run tests with HTML coverage report",
         "test:coverage-text": "Run tests with text coverage report",
         "test:filter": "Run filtered tests (usage: composer test:filter -- --filter=test_name)",
@@ -113,7 +114,8 @@
         "optimize-autoloader": true,
         "preferred-install": "dist",
         "allow-plugins": {
-            "phpstan/extension-installer": true
+            "phpstan/extension-installer": true,
+            "pestphp/pest-plugin": true
         }
     }
 }

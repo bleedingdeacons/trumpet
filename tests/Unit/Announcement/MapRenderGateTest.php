@@ -4,10 +4,9 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Announcement;
 
-use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
-/**
+/*
  * The contract behind the map render gate.
  *
  * AnnouncementManager decides whether to emit the map markup, and it now asks
@@ -21,86 +20,64 @@ use Tests\TestCase;
  * these tests pin the property that makes the substitution safe rather than
  * driving the renderer.
  */
-class MapRenderGateTest extends TestCase
-{
-    /**
-     * The invariant the swap depends on: hasValidLocation() must imply
-     * getShowMap(). If that ever stopped holding, moving the gate would start
-     * showing maps on announcements whose author had switched the map off.
-     */
-    #[Test]
-    public function a_valid_location_always_implies_the_map_is_switched_on(): void
-    {
-        $locations = [
-            'real coordinates' => ['lat' => '51.5074', 'lng' => '-0.1278'],
-            'meridian' => ['lat' => '51.4779', 'lng' => '0'],
-            'null island' => ['lat' => '0', 'lng' => '0'],
-            'blank' => [],
-            'empty strings' => ['lat' => '', 'lng' => ''],
-            'non-numeric' => ['lat' => 'x', 'lng' => 'y'],
-        ];
 
-        foreach ([true, false] as $showMap) {
-            foreach ($locations as $label => $location) {
-                $announcement = $this->makeAnnouncement([
-                    self::SHOW_MAP => $showMap,
-                    self::LOCATION => $location,
-                ]);
+// The invariant the swap depends on: hasValidLocation() must imply
+// getShowMap(). If that ever stopped holding, moving the gate would start
+// showing maps on announcements whose author had switched the map off.
+it('only has a valid location when the map is switched on', function () {
+    $locations = [
+        'real coordinates' => ['lat' => '51.5074', 'lng' => '-0.1278'],
+        'meridian' => ['lat' => '51.4779', 'lng' => '0'],
+        'null island' => ['lat' => '0', 'lng' => '0'],
+        'blank' => [],
+        'empty strings' => ['lat' => '', 'lng' => ''],
+        'non-numeric' => ['lat' => 'x', 'lng' => 'y'],
+    ];
 
-                if ($announcement->hasValidLocation()) {
-                    $this->assertTrue(
-                        $announcement->getShowMap(),
-                        "hasValidLocation() was true with the map switched off ($label)."
-                    );
-                }
+    foreach ([true, false] as $showMap) {
+        foreach ($locations as $label => $location) {
+            $announcement = $this->makeAnnouncement([
+                TestCase::SHOW_MAP => $showMap,
+                TestCase::LOCATION => $location,
+            ]);
+
+            if ($announcement->hasValidLocation()) {
+                expect($announcement->getShowMap())
+                    ->toBeTrue("hasValidLocation() was true with the map switched off ($label).");
             }
         }
     }
+});
 
-    /**
-     * The case the gate exists for: map on, nothing entered. Previously this
-     * rendered a marker with empty coordinates.
-     */
-    #[Test]
-    public function an_announcement_with_no_coordinates_is_not_rendered(): void
-    {
-        $announcement = $this->makeAnnouncement([
-            self::SHOW_MAP => true,
-            self::LOCATION => [],
-        ]);
+// The case the gate exists for: map on, nothing entered. Previously this
+// rendered a marker with empty coordinates.
+it('does not render an announcement with no coordinates', function () {
+    $announcement = $this->makeAnnouncement([
+        TestCase::SHOW_MAP => true,
+        TestCase::LOCATION => [],
+    ]);
 
-        $this->assertFalse(
-            $announcement->hasValidLocation(),
-            'The gate must close for an announcement with no coordinates.'
-        );
-    }
+    expect($announcement->hasValidLocation())
+        ->toBeFalse('The gate must close for an announcement with no coordinates.');
+});
 
-    /**
-     * ...and the case it must not break.
-     */
-    #[Test]
-    public function an_announcement_with_real_coordinates_is_still_rendered(): void
-    {
-        $announcement = $this->makeAnnouncement([
-            self::SHOW_MAP => true,
-            self::LOCATION => ['lat' => '51.5074', 'lng' => '-0.1278', 'address' => 'London'],
-        ]);
+// ...and the case it must not break.
+it('still renders an announcement with real coordinates', function () {
+    $announcement = $this->makeAnnouncement([
+        TestCase::SHOW_MAP => true,
+        TestCase::LOCATION => ['lat' => '51.5074', 'lng' => '-0.1278', 'address' => 'London'],
+    ]);
 
-        $this->assertTrue($announcement->hasValidLocation());
-    }
+    expect($announcement->hasValidLocation())->toBeTrue();
+});
 
-    /**
-     * Switching the map off still suppresses it, coordinates or not — the
-     * behaviour the old gate provided and this must not lose.
-     */
-    #[Test]
-    public function switching_the_map_off_still_suppresses_it(): void
-    {
-        $announcement = $this->makeAnnouncement([
-            self::SHOW_MAP => false,
-            self::LOCATION => ['lat' => '51.5074', 'lng' => '-0.1278'],
-        ]);
+// Switching the map off still suppresses it, coordinates or not — the
+// behaviour the old gate provided and this must not lose.
+it('still suppresses the map when it is switched off', function () {
+    $announcement = $this->makeAnnouncement([
+        TestCase::SHOW_MAP => false,
+        TestCase::LOCATION => ['lat' => '51.5074', 'lng' => '-0.1278'],
+    ]);
 
-        $this->assertFalse($announcement->hasValidLocation());
-    }
-}
+    expect($announcement->hasValidLocation())->toBeFalse();
+});

@@ -4,15 +4,12 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Admin;
 
-use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\Attributes\Test;
-use function Brain\Monkey\Functions\when;
 use BleedingDeacons\WpMocks\WpState;
-use Tests\TestCase;
+use Brain\Monkey\Functions;
 use Trumpet\Admin\TrumpetSettings;
 use Trumpet\Config\TrumpetConfig;
 
-/**
+/*
  * Tests for the Trumpet settings screen.
  *
  * One setting, one consequence: whether uninstalling the plugin takes the
@@ -26,229 +23,172 @@ use Trumpet\Config\TrumpetConfig;
  * so those are defined per-test through Brain Monkey. The ones whose arguments
  * matter record them rather than returning a fixed value.
  */
-#[CoversClass(\Trumpet\Admin\TrumpetSettings::class)]
-class TrumpetSettingsTest extends TestCase
-{
+
+covers(TrumpetSettings::class);
+
+beforeEach(function () {
     /** @var array<string, array{group: string, args: array<string, mixed>}> */
-    private array $registeredSettings = [];
+    $this->registeredSettings = [];
 
     /** @var array<int, array<string, mixed>> */
-    private array $sections = [];
+    $this->sections = [];
 
     /** @var array<int, array<string, mixed>> */
-    private array $fields = [];
+    $this->fields = [];
 
-    private TrumpetSettings $settings;
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-
-        $this->registeredSettings = [];
-        $this->sections = [];
-        $this->fields = [];
-
-        $this->stubSettingsApi();
-
-        $this->settings = new TrumpetSettings();
-    }
-
-    /** Capture what a callback prints. */
-    private function capture(callable $fn): string
-    {
-        ob_start();
-        try {
-            $fn();
-        } finally {
-            $html = (string) ob_get_clean();
+    // Stub the Settings API.
+    Functions\when('register_setting')->alias(
+        function (string $group, string $name, mixed $args = []): void {
+            $this->registeredSettings[$name] = ['group' => $group, 'args' => (array) $args];
         }
+    );
 
-        return $html;
-    }
+    Functions\when('add_settings_section')->alias(
+        function (string $id, string $title, mixed $callback, string $page): void {
+            $this->sections[] = compact('id', 'title', 'callback', 'page');
+        }
+    );
 
-    private function stubSettingsApi(): void
-    {
-        when('register_setting')->alias(
-            function (string $group, string $name, mixed $args = []): void {
-                $this->registeredSettings[$name] = ['group' => $group, 'args' => (array) $args];
-            }
-        );
+    Functions\when('add_settings_field')->alias(
+        function (string $id, string $title, mixed $callback, string $page, string $section = 'default'): void {
+            $this->fields[] = compact('id', 'title', 'callback', 'page', 'section');
+        }
+    );
 
-        when('add_settings_section')->alias(
-            function (string $id, string $title, mixed $callback, string $page): void {
-                $this->sections[] = compact('id', 'title', 'callback', 'page');
-            }
-        );
+    Functions\when('get_admin_page_title')->justReturn('Trumpet Settings');
+    Functions\when('settings_fields')->alias(static function (string $group): void {
+        echo '<input type="hidden" name="option_page" value="' . $group . '">';
+    });
+    Functions\when('do_settings_sections')->alias(static function (string $page): void {
+        echo '<!-- sections for ' . $page . ' -->';
+    });
+    Functions\when('submit_button')->alias(static function (string $text = 'Save Changes'): void {
+        echo '<button type="submit">' . $text . '</button>';
+    });
 
-        when('add_settings_field')->alias(
-            function (string $id, string $title, mixed $callback, string $page, string $section = 'default'): void {
-                $this->fields[] = compact('id', 'title', 'callback', 'page', 'section');
-            }
-        );
+    $this->settings = new TrumpetSettings();
+});
 
-        when('get_admin_page_title')->justReturn('Trumpet Settings');
-        when('settings_fields')->alias(static function (string $group): void {
-            echo '<input type="hidden" name="option_page" value="' . $group . '">';
-        });
-        when('do_settings_sections')->alias(static function (string $page): void {
-            echo '<!-- sections for ' . $page . ' -->';
-        });
-        when('submit_button')->alias(static function (string $text = 'Save Changes'): void {
-            echo '<button type="submit">' . $text . '</button>';
-        });
-    }
-
-    // ── registration ──────────────────────────────────────────────────
-    #[Test]
-    public function the_constructor_hooks_the_menu_and_the_settings_registration(): void
-    {
+// ── registration ──────────────────────────────────────────────────
+describe('registration', function () {
+    it('hooks the menu and the settings registration in the constructor', function () {
         $this->assertActionAdded('admin_menu', false, 'the settings page should be added to the menu');
         $this->assertActionAdded('admin_init', false, 'the settings should be registered on admin_init');
-    }
+    });
 
-    /**
-     * The page hangs off Trumpet's own top-level menu rather than
-     * Settings → …, so it sits with the announcements it configures.
-     */
-    #[Test]
-    public function the_settings_page_is_added_under_the_trumpet_menu(): void
-    {
+    // The page hangs off Trumpet's own top-level menu rather than
+    // Settings → …, so it sits with the announcements it configures.
+    it('adds the settings page under the Trumpet menu', function () {
         $this->settings->addSettingsPage();
 
-        $this->assertCount(1, WpState::$menus);
-        $this->assertSame([
-            'type' => 'submenu',
-            'parent' => 'trumpet',
-            'slug' => TrumpetConfig::SETTINGS_PAGE,
-            'title' => 'Settings',
-            'cap' => 'manage_options',
-        ], WpState::$menus[0]);
-    }
+        expect(WpState::$menus)->toHaveCount(1)
+            ->and(WpState::$menus[0])->toBe([
+                'type' => 'submenu',
+                'parent' => 'trumpet',
+                'slug' => TrumpetConfig::SETTINGS_PAGE,
+                'title' => 'Settings',
+                'cap' => 'manage_options',
+            ]);
+    });
 
-    /**
-     * The registered default is what WordPress hands back on a fresh install,
-     * and preserving data is the safe side of that choice.
-     */
-    #[Test]
-    public function the_uninstall_setting_is_registered_defaulting_to_preserve_data(): void
-    {
+    // The registered default is what WordPress hands back on a fresh install,
+    // and preserving data is the safe side of that choice.
+    it('registers the uninstall setting defaulting to preserve data', function () {
         $this->settings->initializeSettings();
 
-        $this->assertArrayHasKey(TrumpetConfig::OPTION_NAME, $this->registeredSettings);
+        expect($this->registeredSettings)->toHaveKey(TrumpetConfig::OPTION_NAME);
         $setting = $this->registeredSettings[TrumpetConfig::OPTION_NAME];
 
-        $this->assertSame(TrumpetConfig::OPTION_GROUP, $setting['group']);
-        $this->assertSame('array', $setting['args']['type']);
-        $this->assertSame(['preserve_data' => true], $setting['args']['default']);
-    }
+        expect($setting['group'])->toBe(TrumpetConfig::OPTION_GROUP)
+            ->and($setting['args']['type'])->toBe('array')
+            ->and($setting['args']['default'])->toBe(['preserve_data' => true]);
+    });
 
-    #[Test]
-    public function the_uninstall_section_and_its_field_are_added_to_the_settings_page(): void
-    {
+    it('adds the uninstall section and its field to the settings page', function () {
         $this->settings->initializeSettings();
 
-        $this->assertCount(1, $this->sections);
-        $this->assertSame('uninstall_section', $this->sections[0]['id']);
-        $this->assertSame(TrumpetConfig::SETTINGS_PAGE, $this->sections[0]['page']);
+        expect($this->sections)->toHaveCount(1)
+            ->and($this->sections[0]['id'])->toBe('uninstall_section')
+            ->and($this->sections[0]['page'])->toBe(TrumpetConfig::SETTINGS_PAGE);
 
-        $this->assertCount(1, $this->fields);
-        $this->assertSame('preserve_data', $this->fields[0]['id']);
-        $this->assertSame(TrumpetConfig::SETTINGS_PAGE, $this->fields[0]['page']);
-        $this->assertSame('uninstall_section', $this->fields[0]['section']);
-    }
+        expect($this->fields)->toHaveCount(1)
+            ->and($this->fields[0]['id'])->toBe('preserve_data')
+            ->and($this->fields[0]['page'])->toBe(TrumpetConfig::SETTINGS_PAGE)
+            ->and($this->fields[0]['section'])->toBe('uninstall_section');
+    });
+});
 
-    // ── the screen ────────────────────────────────────────────────────
-    /**
-     * The capability is re-checked on the screen itself rather than trusted to
-     * the menu having hidden it.
-     */
-    #[Test]
-    public function the_screen_renders_nothing_without_the_capability(): void
-    {
+// ── the screen ────────────────────────────────────────────────────
+describe('the screen', function () {
+    // The capability is re-checked on the screen itself rather than trusted to
+    // the menu having hidden it.
+    it('renders nothing without the capability', function () {
         WpState::$userCan = false;
 
-        $this->assertSame('', $this->capture(fn () => $this->settings->renderSettingsPage()));
-    }
+        expect(captureOutput(fn () => $this->settings->renderSettingsPage()))->toBe('');
+    });
 
-    #[Test]
-    public function the_screen_renders_a_settings_form_posting_to_options_php(): void
-    {
-        $html = $this->capture(fn () => $this->settings->renderSettingsPage());
+    it('renders a settings form posting to options.php', function () {
+        $html = captureOutput(fn () => $this->settings->renderSettingsPage());
 
-        $this->assertStringContainsString('Trumpet Settings', $html);
-        $this->assertStringContainsString('action="options.php"', $html);
-        $this->assertStringContainsString('value="' . TrumpetConfig::OPTION_GROUP . '"', $html);
-        $this->assertStringContainsString('sections for ' . TrumpetConfig::SETTINGS_PAGE, $html);
-        $this->assertStringContainsString('<button type="submit">Save Settings</button>', $html);
-        // The info box explaining the default sits below the form.
-        $this->assertStringContainsString('Data Preservation', $html);
-        $this->assertStringContainsString('preserved when uninstalling', $html);
-    }
+        expect($html)
+            ->toContain('Trumpet Settings')
+            ->toContain('action="options.php"')
+            ->toContain('value="' . TrumpetConfig::OPTION_GROUP . '"')
+            ->toContain('sections for ' . TrumpetConfig::SETTINGS_PAGE)
+            ->toContain('<button type="submit">Save Settings</button>')
+            // The info box explaining the default sits below the form.
+            ->toContain('Data Preservation')
+            ->toContain('preserved when uninstalling');
+    });
 
-    #[Test]
-    public function the_section_description_explains_what_the_setting_governs(): void
-    {
-        $this->assertStringContainsString(
-            'Configure how the plugin should behave when uninstalled.',
-            $this->capture(fn () => $this->settings->renderUninstallSection())
-        );
-    }
+    it('explains what the setting governs in the section description', function () {
+        expect(captureOutput(fn () => $this->settings->renderUninstallSection()))
+            ->toContain('Configure how the plugin should behave when uninstalled.');
+    });
+});
 
-    // ── the checkbox ──────────────────────────────────────────────────
-    /**
-     * With nothing stored yet the box has to render ticked, or the first save
-     * from a fresh install would switch data preservation off.
-     */
-    #[Test]
-    public function the_checkbox_is_ticked_when_nothing_has_been_stored(): void
-    {
-        $html = $this->capture(fn () => $this->settings->renderPreserveDataField());
+// ── the checkbox ──────────────────────────────────────────────────
+describe('the checkbox', function () {
+    // With nothing stored yet the box has to render ticked, or the first save
+    // from a fresh install would switch data preservation off.
+    it('is ticked when nothing has been stored', function () {
+        $html = captureOutput(fn () => $this->settings->renderPreserveDataField());
 
-        $this->assertStringContainsString('checked="checked"', $html);
-        $this->assertStringContainsString(
-            'name="' . TrumpetConfig::OPTION_NAME . '[preserve_data]"',
-            $html
-        );
-    }
+        expect($html)
+            ->toContain('checked="checked"')
+            ->toContain('name="' . TrumpetConfig::OPTION_NAME . '[preserve_data]"');
+    });
 
-    #[Test]
-    public function the_checkbox_is_ticked_when_preservation_is_switched_on(): void
-    {
+    it('is ticked when preservation is switched on', function () {
         WpState::$options[TrumpetConfig::OPTION_NAME] = ['preserve_data' => true];
 
-        $this->assertStringContainsString(
-            'checked="checked"',
-            $this->capture(fn () => $this->settings->renderPreserveDataField())
-        );
-    }
+        expect(captureOutput(fn () => $this->settings->renderPreserveDataField()))
+            ->toContain('checked="checked"');
+    });
 
-    /**
-     * An unticked checkbox is absent from the POST, so it is stored as a
-     * falsey value rather than removed — and has to render unticked.
-     */
-    #[Test]
-    public function the_checkbox_is_clear_when_preservation_is_switched_off(): void
-    {
+    // An unticked checkbox is absent from the POST, so it is stored as a
+    // falsey value rather than removed — and has to render unticked.
+    it('is clear when preservation is switched off', function () {
         WpState::$options[TrumpetConfig::OPTION_NAME] = ['preserve_data' => false];
 
-        $html = $this->capture(fn () => $this->settings->renderPreserveDataField());
+        $html = captureOutput(fn () => $this->settings->renderPreserveDataField());
 
-        $this->assertStringNotContainsString('checked=', $html);
-        $this->assertStringContainsString('type="checkbox"', $html);
-    }
+        expect($html)
+            ->not->toContain('checked=')
+            ->toContain('type="checkbox"');
+    });
+});
 
-    // ── the value the uninstaller reads ───────────────────────────────
-    #[Test]
-    public function the_uninstall_settings_default_to_preserving_data(): void
-    {
-        $this->assertSame(['preserve_data' => true], TrumpetSettings::getUninstallSettings());
-    }
+// ── the value the uninstaller reads ───────────────────────────────
+describe('the value the uninstaller reads', function () {
+    it('defaults to preserving data', function () {
+        expect(TrumpetSettings::getUninstallSettings())->toBe(['preserve_data' => true]);
+    });
 
-    #[Test]
-    public function the_uninstall_settings_report_what_was_stored(): void
-    {
+    it('reports what was stored', function () {
         WpState::$options[TrumpetConfig::OPTION_NAME] = ['preserve_data' => false];
 
-        $this->assertSame(['preserve_data' => false], TrumpetSettings::getUninstallSettings());
-    }
-}
+        expect(TrumpetSettings::getUninstallSettings())->toBe(['preserve_data' => false]);
+    });
+});
