@@ -3,7 +3,7 @@
 /**
  * Plugin Name: Trumpet
  * Description: An announcement management plugin.
- * Version: 3.0.1
+ * Version: 3.0.2
  * Requires at least: 6.0
  * Requires PHP: 8.4
  * Requires Plugins: unity
