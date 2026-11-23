@@ -113,7 +113,7 @@ class AnnouncementManager
     public function generateAnnouncementsList(array $atts = [], ?string $content = ''): string
     {
         try {
-            $activeAnnouncements = $this->repository->findActive();
+            $activeAnnouncements = self::orderForDisplay($this->repository->findActive());
 
             $output = '<div class="announcements-container">';
             $output .= '<h1 id="announcements">Announcements</h1>';
@@ -136,6 +136,42 @@ class AnnouncementManager
     }
 
     /**
+     * Order announcements for the public list.
+     *
+     * High priority first, then normal, then low. Within high, the soonest
+     * End Date comes first — for a funeral notice that is the funeral day —
+     * and those with no End Date follow the dated ones. Normal and low keep
+     * the order they arrive in (newest posted first, from the repository);
+     * usort() is stable, so ties never shuffle.
+     *
+     * @param array<int, Announcement> $announcements
+     * @return list<Announcement>
+     */
+    private static function orderForDisplay(array $announcements): array
+    {
+        $ordered = array_values($announcements);
+
+        usort($ordered, static function (Announcement $a, Announcement $b): int {
+            $byRank = $a->getPriority()->rank() <=> $b->getPriority()->rank();
+            if ($byRank !== 0 || $a->getPriority() !== Priority::High) {
+                return $byRank;
+            }
+
+            $aEnd = $a->getEndDate();
+            $bEnd = $b->getEndDate();
+
+            if ($aEnd === null || $bEnd === null) {
+                // Dated before undated; two undated stay as they were.
+                return ($aEnd === null) <=> ($bEnd === null);
+            }
+
+            return $aEnd->format('Y-m-d') <=> $bEnd->format('Y-m-d');
+        });
+
+        return $ordered;
+    }
+
+    /**
      * Render a single announcement
      *
      * @param Announcement $announcement Announcement to render
@@ -143,8 +179,15 @@ class AnnouncementManager
      */
     private function renderSingleAnnouncement(Announcement $announcement): string
     {
+        // Styling hook for the theme; normal priority adds nothing.
+        $priority = $announcement->getPriority();
+        $class = $priority === Priority::Normal
+            ? 'announcement'
+            : 'announcement announcement--priority-' . $priority->value;
+
         $output = sprintf(
-            '<div class="announcement" data-published="%d">',
+            '<div class="%s" data-published="%d">',
+            esc_attr($class),
             $announcement->getPublishedTimestamp()
         );
 

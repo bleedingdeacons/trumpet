@@ -72,6 +72,24 @@ it('writes every optional custom field on save', function () {
     expect(writeRepository()->save($announcement))->toBeTrue();
 });
 
+it('writes the priority as its field value on save', function () {
+    $announcement = $this->makeAnnouncement([TrumpetConfig::PRIORITY_FIELD => 'High'], 'publish', 62);
+    WpState::$nextPostId = 63;
+
+    writeRepository()->save($announcement);
+
+    expect(get_field(TrumpetConfig::PRIORITY_FIELD, 63))->toBe('high');
+});
+
+it('writes normal when no priority was set', function () {
+    $announcement = $this->makeAnnouncement([TestCase::TITLE => 'Plain'], 'publish', 64);
+    WpState::$nextPostId = 65;
+
+    writeRepository()->save($announcement);
+
+    expect(get_field(TrumpetConfig::PRIORITY_FIELD, 65))->toBe('normal');
+});
+
 // ─── update: WP_Error + changed branch ───────────────────────────
 describe('update', function () {
     it('wraps a WP_Error from wp_update_post', function () {

@@ -297,6 +297,10 @@ class AnnouncementRepository implements AnnouncementRepositoryInterface
             return true;
         }
 
+        if ($original->getPriority() !== $updated->getPriority()) {
+            return true;
+        }
+
         $originalEndDate = $original->getEndDate();
         $updatedEndDate = $updated->getEndDate();
 
@@ -401,6 +405,7 @@ class AnnouncementRepository implements AnnouncementRepositoryInterface
         update_field(TrumpetConfig::TITLE_FIELD, $announcement->getTitle(), $postId);
         update_field(TrumpetConfig::HIDE_FIELD, $announcement->isHidden(), $postId);
         update_field(TrumpetConfig::BODY_FIELD, $announcement->getBody(), $postId);
+        update_field(TrumpetConfig::PRIORITY_FIELD, $announcement->getPriority()->value, $postId);
 
         if ($announcement->getEndDate()) {
             update_field(

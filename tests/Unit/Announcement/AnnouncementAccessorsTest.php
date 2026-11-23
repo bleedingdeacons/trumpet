@@ -7,6 +7,8 @@ namespace Tests\Unit\Announcement;
 use DateTime;
 use Tests\TestCase;
 use Trumpet\Announcement\Announcement;
+use Trumpet\Announcement\Priority;
+use Trumpet\Config\TrumpetConfig;
 
 /*
  * Cover the Announcement accessors and derived-state helpers not exercised by
@@ -59,6 +61,12 @@ it('takes the post date and formatted post date from the publish time', function
 it('reflects the hide field in isHidden', function () {
     expect($this->makeAnnouncement([TestCase::HIDE => true])->isHidden())->toBeTrue()
         ->and($this->makeAnnouncement([TestCase::HIDE => false])->isHidden())->toBeFalse();
+});
+
+it('reads the priority field, defaulting to normal', function () {
+    expect($this->makeAnnouncement([TrumpetConfig::PRIORITY_FIELD => 'high'])->getPriority())->toBe(Priority::High)
+        ->and($this->makeAnnouncement([TrumpetConfig::PRIORITY_FIELD => 'low'])->getPriority())->toBe(Priority::Low)
+        ->and($this->makeAnnouncement([])->getPriority())->toBe(Priority::Normal);
 });
 
 // ─── getStatusText, branch by branch ─────────────────────────────

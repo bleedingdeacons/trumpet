@@ -31,6 +31,7 @@ class Announcement
     private bool $hidden;
     private ?DateTime $startDisplayDate;
     private string $publicationStatus;
+    private Priority $priority;
 
     /**
      * Constructor: Initialize properties from a WordPress post.
@@ -110,6 +111,11 @@ class Announcement
         // Get and parse start display date
         $this->startDisplayDate = self::parseDate(
             get_field(TrumpetConfig::START_DISPLAY_FIELD, $this->id)
+        );
+
+        // Get priority (missing or unrecognised reads as normal)
+        $this->priority = Priority::fromField(
+            get_field(TrumpetConfig::PRIORITY_FIELD, $this->id)
         );
     }
 
@@ -486,5 +492,15 @@ class Announcement
     public function isHidden(): bool
     {
         return $this->hidden;
+    }
+
+    /**
+     * Get the listing priority
+     *
+     * @return Priority
+     */
+    public function getPriority(): Priority
+    {
+        return $this->priority;
     }
 }
