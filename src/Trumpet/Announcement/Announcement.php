@@ -31,7 +31,16 @@ class Announcement
     private bool $hidden;
     private ?DateTime $startDisplayDate;
     private string $publicationStatus;
-    private Priority $priority;
+    /**
+     * Defaulted, not just set in the constructor: announcements are kept in
+     * the persistent object cache, and one cached before this property
+     * existed is unserialized without the constructor running. A typed
+     * property with no default would be left uninitialised, and reading it
+     * throws an Error that the list's AnnouncementException handler does
+     * not catch. With the default, such an announcement reads as Normal
+     * until the cache is refreshed.
+     */
+    private Priority $priority = Priority::Normal;
 
     /**
      * Constructor: Initialize properties from a WordPress post.

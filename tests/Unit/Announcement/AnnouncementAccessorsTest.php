@@ -69,6 +69,35 @@ it('reads the priority field, defaulting to normal', function () {
         ->and($this->makeAnnouncement([])->getPriority())->toBe(Priority::Normal);
 });
 
+it('reads an announcement cached before priority existed as normal', function () {
+    // An object cached by an older version is unserialized without the
+    // constructor running; newInstanceWithoutConstructor() builds it the same
+    // way, leaving only declared defaults in place.
+    $stale = (new \ReflectionClass(Announcement::class))->newInstanceWithoutConstructor();
+
+    expect($stale->getPriority())->toBe(Priority::Normal);
+});
+
+it('reads a serialized announcement with no priority as normal', function () {
+    $fresh = serialize($this->makeAnnouncement([TrumpetConfig::PRIORITY_FIELD => 'high']));
+    // Strip the property, as in a payload written before it existed.
+    $stale = preg_replace(
+        '/s:\d+:"\0Trumpet\\\\Announcement\\\\Announcement\0priority";E:\d+:"[^"]+";/',
+        '',
+        $fresh,
+        1,
+        $count
+    );
+    $stale = preg_replace_callback(
+        '/^O:(\d+):"([^"]+)":(\d+):/',
+        fn (array $m) => sprintf('O:%s:"%s":%d:', $m[1], $m[2], (int) $m[3] - 1),
+        (string) $stale
+    );
+
+    expect($count)->toBe(1);
+    expect(unserialize((string) $stale)->getPriority())->toBe(Priority::Normal);
+});
+
 // ─── getStatusText, branch by branch ─────────────────────────────
 describe('getStatusText', function () {
     it('is Review for a pending post', function () {
