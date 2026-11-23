@@ -30,6 +30,7 @@ final class TrumpetConfig
     public const OPTION_NAME = 'trumpet_uninstall_settings';
     public const SETTINGS_PAGE = 'trumpet-settings';
     public const START_DISPLAY_FIELD = 'general-group_start_display';
+    public const PRIORITY_FIELD = 'priority';
 
     private function __construct()
     {

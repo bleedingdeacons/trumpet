@@ -205,6 +205,7 @@ describe('hasAnnouncementChanged', function () {
         'location'  => [[TrumpetConfig::LOCATION_FIELD => ['lat' => '51.5', 'lng' => '-0.1', 'address' => 'X']]],
         'meeting'   => [[TrumpetConfig::RELATED_MEETING_FIELD => [1, 2]]],
         'start date' => [[TrumpetConfig::START_DISPLAY_FIELD => '03/03/2026']],
+        'priority'  => [[TrumpetConfig::PRIORITY_FIELD => 'high']],
     ]);
 
     it('detects a status difference', function () {

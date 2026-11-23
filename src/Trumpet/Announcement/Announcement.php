@@ -31,6 +31,16 @@ class Announcement
     private bool $hidden;
     private ?DateTime $startDisplayDate;
     private string $publicationStatus;
+    /**
+     * Defaulted, not just set in the constructor: announcements are kept in
+     * the persistent object cache, and one cached before this property
+     * existed is unserialized without the constructor running. A typed
+     * property with no default would be left uninitialised, and reading it
+     * throws an Error that the list's AnnouncementException handler does
+     * not catch. With the default, such an announcement reads as Normal
+     * until the cache is refreshed.
+     */
+    private Priority $priority = Priority::Normal;
 
     /**
      * Constructor: Initialize properties from a WordPress post.
@@ -110,6 +120,11 @@ class Announcement
         // Get and parse start display date
         $this->startDisplayDate = self::parseDate(
             get_field(TrumpetConfig::START_DISPLAY_FIELD, $this->id)
+        );
+
+        // Get priority (missing or unrecognised reads as normal)
+        $this->priority = Priority::fromField(
+            get_field(TrumpetConfig::PRIORITY_FIELD, $this->id)
         );
     }
 
@@ -486,5 +501,15 @@ class Announcement
     public function isHidden(): bool
     {
         return $this->hidden;
+    }
+
+    /**
+     * Get the listing priority
+     *
+     * @return Priority
+     */
+    public function getPriority(): Priority
+    {
+        return $this->priority;
     }
 }

@@ -111,6 +111,63 @@ it('skips a meeting the repository cannot find in a single render', function () 
         ->not->toContain('meeting_link');
 });
 
+it('lists high priority first by end date, then normal, then low', function () {
+    $make = fn (int $id, string $title, ?string $priority, ?string $endDate = null) => $this->makeAnnouncement(
+        array_filter([
+            TestCase::TITLE => $title,
+            TrumpetConfig::PRIORITY_FIELD => $priority,
+            TestCase::END_DATE => $endDate,
+        ], fn ($value) => $value !== null),
+        'publish',
+        $id
+    );
+
+    // The repository's order: newest posted first.
+    $this->repo->shouldReceive('findActive')->andReturn([
+        $make(1, 'Normal newest', 'normal'),
+        $make(2, 'Low newest', 'low'),
+        $make(3, 'High in five days', 'high', $this->daysFromToday(5)),
+        $make(4, 'Normal older', null),
+        $make(5, 'High tomorrow', 'high', $this->daysFromToday(1)),
+        $make(6, 'High undated', 'high'),
+        $make(7, 'Low older', 'low'),
+    ]);
+
+    $html = $this->manager->generateAnnouncementsList();
+
+    $expected = [
+        'High tomorrow',
+        'High in five days',
+        'High undated',
+        'Normal newest',
+        'Normal older',
+        'Low newest',
+        'Low older',
+    ];
+    $positions = array_map(fn (string $title) => strpos($html, $title), $expected);
+
+    expect($positions)->not->toContain(false);
+    $sorted = $positions;
+    sort($sorted);
+    expect($positions)->toBe($sorted);
+});
+
+it('adds a class hook to high and low priority only', function () {
+    $this->repo->shouldReceive('findActive')->andReturn([
+        $this->makeAnnouncement([TestCase::TITLE => 'H', TrumpetConfig::PRIORITY_FIELD => 'high'], 'publish', 1),
+        $this->makeAnnouncement([TestCase::TITLE => 'N'], 'publish', 2),
+        $this->makeAnnouncement([TestCase::TITLE => 'L', TrumpetConfig::PRIORITY_FIELD => 'low'], 'publish', 3),
+    ]);
+
+    $html = $this->manager->generateAnnouncementsList();
+
+    expect($html)
+        ->toContain('class="announcement announcement--priority-high"')
+        ->toContain('class="announcement announcement--priority-low"')
+        ->toContain('class="announcement" data-published')
+        ->not->toContain('announcement--priority-normal');
+});
+
 it('shows the empty message in the list', function () {
     $this->repo->shouldReceive('findActive')->andReturn([]);
     expect($this->manager->generateAnnouncementsList())->toContain('No current announcements');
